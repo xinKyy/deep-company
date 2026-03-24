@@ -3,6 +3,7 @@ export interface LlmMessage {
   content: string;
   name?: string;
   tool_call_id?: string;
+  tool_calls?: LlmToolCall[];
 }
 
 export interface LlmTool {
@@ -69,9 +70,26 @@ export function createOpenAIAdapter(
   baseUrl = "https://api.openai.com/v1"
 ): ProviderAdapter {
   return async (input) => {
+    const messages = input.messages.map((m) => {
+      const msg: Record<string, unknown> = {
+        role: m.role,
+        content: m.content,
+      };
+      if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
+      if (m.name) msg.name = m.name;
+      if (m.tool_calls && m.tool_calls.length > 0) {
+        msg.tool_calls = m.tool_calls.map((tc) => ({
+          id: tc.id,
+          type: "function" as const,
+          function: tc.function,
+        }));
+      }
+      return msg;
+    });
+
     const body: Record<string, unknown> = {
       model: input.model,
-      messages: input.messages,
+      messages,
       temperature: input.temperature ?? 0.7,
     };
     if (input.maxTokens) body.max_tokens = input.maxTokens;

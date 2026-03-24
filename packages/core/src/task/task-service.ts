@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { getDb, tasks, taskEvents } from "../db/index.js";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  created: ["assigned", "cancelled"],
+  created: ["assigned", "in_progress", "cancelled"],
   assigned: ["in_progress", "cancelled"],
   in_progress: ["review", "blocked", "cancelled"],
   blocked: ["in_progress", "cancelled"],

@@ -65,6 +65,7 @@ export class AgentEngine {
         messages.push({
           role: "assistant",
           content: result.content || "",
+          tool_calls: result.toolCalls,
         });
 
         for (const tc of result.toolCalls) {

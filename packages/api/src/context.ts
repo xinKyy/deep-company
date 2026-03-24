@@ -75,7 +75,7 @@ export function createAppContext(): AppContext {
     );
   }
 
-  registerBuiltinSkills(skillService, taskService, projectService);
+  registerBuiltinSkills(skillService, taskService, projectService, agentService);
   registerSystemSkills(skillService, envVarService);
 
   return {
@@ -95,11 +95,23 @@ export function createAppContext(): AppContext {
 function registerBuiltinSkills(
   skillService: SkillService,
   taskService: TaskService,
-  projectService: ProjectService
+  projectService: ProjectService,
+  agentService: AgentService
 ) {
   skillService.registerHandler("create_task", async (params, ctx) => {
+    const p = params as any;
+
+    if (p.projectId) {
+      const project = await projectService.getById(p.projectId);
+      if (!project) p.projectId = null;
+    }
+    if (p.assignedAgentId) {
+      const agent = await agentService.getById(p.assignedAgentId);
+      if (!agent) p.assignedAgentId = null;
+    }
+
     return taskService.create({
-      ...(params as any),
+      ...p,
       createdByAgentId: ctx.agentId,
     });
   });
@@ -125,8 +137,15 @@ function registerBuiltinSkills(
   });
 
   skillService.registerHandler("create_subtask", async (params, ctx) => {
+    const p = params as any;
+
+    if (p.assignedAgentId) {
+      const agent = await agentService.getById(p.assignedAgentId);
+      if (!agent) p.assignedAgentId = null;
+    }
+
     return taskService.create({
-      ...(params as any),
+      ...p,
       createdByAgentId: ctx.agentId,
     });
   });
