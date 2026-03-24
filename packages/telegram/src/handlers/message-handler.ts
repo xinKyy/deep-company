@@ -1,6 +1,7 @@
 import type { Context as GrammyContext } from "grammy";
 import type { AppContext } from "../types.js";
 import { AgentEngine } from "../agent-engine.js";
+import { splitMessage } from "../split-message.js";
 
 export function createMessageHandler(ctx: AppContext, agentId: string) {
   const engine = new AgentEngine(ctx, agentId);
@@ -46,10 +47,13 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
       });
 
       if (reply) {
-        try {
-          await grammyCtx.reply(reply, { parse_mode: "Markdown" });
-        } catch {
-          await grammyCtx.reply(reply);
+        const chunks = splitMessage(reply);
+        for (const chunk of chunks) {
+          try {
+            await grammyCtx.reply(chunk, { parse_mode: "Markdown" });
+          } catch {
+            await grammyCtx.reply(chunk);
+          }
         }
 
         await ctx.messageService.record({

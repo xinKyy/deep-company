@@ -1,5 +1,6 @@
 import { Bot } from "grammy";
 import type { AppContext } from "./types.js";
+import { splitMessage } from "./split-message.js";
 
 export class GroupNotifier {
   private ctx: AppContext;
@@ -90,12 +91,15 @@ export class GroupNotifier {
       console.warn("GroupNotifier: no group chat ID configured");
       return;
     }
-    try {
-      await bot.api.sendMessage(this.groupChatId, text, {
-        parse_mode: "Markdown",
-      });
-    } catch (err) {
-      console.error("GroupNotifier: failed to send message:", err);
+    const chunks = splitMessage(text);
+    for (const chunk of chunks) {
+      try {
+        await bot.api.sendMessage(this.groupChatId, chunk, {
+          parse_mode: "Markdown",
+        });
+      } catch (err) {
+        console.error("GroupNotifier: failed to send message:", err);
+      }
     }
   }
 }
