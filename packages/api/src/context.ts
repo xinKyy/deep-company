@@ -184,6 +184,42 @@ function registerSystemSkills(
   skillService: SkillService,
   envVarService: EnvVarService
 ) {
+  // ─── Shell / Bash ───────────────────────────────────────────────────────
+
+  skillService.registerHandler("run_bash", async (params) => {
+    const { command, cwd, timeout } = params as {
+      command: string;
+      cwd?: string;
+      timeout?: number;
+    };
+    const ms = Math.min(timeout || 120_000, 300_000);
+    return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+      const proc = spawn("bash", ["-c", command], {
+        cwd: cwd || process.cwd(),
+        env: process.env as Record<string, string>,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      let stdout = "";
+      let stderr = "";
+      const timer = setTimeout(() => {
+        proc.kill("SIGKILL");
+        reject(new Error(`Command timed out after ${ms}ms`));
+      }, ms);
+      proc.stdout.on("data", (d) => (stdout += d));
+      proc.stderr.on("data", (d) => (stderr += d));
+      proc.stdin.end();
+      proc.on("close", (code) => {
+        clearTimeout(timer);
+        if (code === 0) resolve({ stdout, stderr });
+        else reject(new Error(`Exit ${code}: ${stderr || stdout}`));
+      });
+      proc.on("error", (e) => {
+        clearTimeout(timer);
+        reject(e);
+      });
+    });
+  });
+
   // ─── Git Skills ───────────────────────────────────────────────────────────
 
   skillService.registerHandler("git_clone", async (params) => {

@@ -39,6 +39,8 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
     if (!cleanText) return;
 
     try {
+      await grammyCtx.react("👀").catch(() => {});
+
       const reply = await engine.process(cleanText, {
         chatId,
         userId,
