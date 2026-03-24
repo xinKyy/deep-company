@@ -27,8 +27,8 @@ export function SkillsPage() {
   return (
     <div>
       <PageHeader
-        title="Skills"
-        action={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> New Skill</Button>}
+        title="技能"
+        action={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> 新建技能</Button>}
       />
 
       <Card hover={false} className="mb-8">
@@ -36,12 +36,12 @@ export function SkillsPage() {
           <div className="flex items-center gap-2 mb-4">
             <Zap size={14} className="text-[#F7931A]" />
             <h3 className="text-xs font-mono font-semibold text-[var(--color-muted)] tracking-wider uppercase">
-              Registered Handlers (Runtime)
+              已注册处理器 (运行时)
             </h3>
           </div>
           <div className="flex flex-wrap gap-2">
             {registeredHandlers.length === 0 ? (
-              <p className="text-sm text-[var(--color-muted)]">No handlers registered</p>
+              <p className="text-sm text-[var(--color-muted)]">暂无注册的处理器</p>
             ) : (
               registeredHandlers.map((name) => (
                 <Badge key={name} variant="orange">{name}</Badge>
@@ -52,7 +52,7 @@ export function SkillsPage() {
       </Card>
 
       {skills.length === 0 ? (
-        <EmptyState icon={<Wrench size={48} />} message="No custom skills defined." />
+        <EmptyState icon={<Wrench size={48} />} message="暂未定义自定义技能。" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {skills.map((skill: any) => (
@@ -68,11 +68,11 @@ export function SkillsPage() {
                   <Badge variant={skill.type === "builtin" ? "info" : "default"}>{skill.type}</Badge>
                 </div>
                 <p className="text-sm text-[var(--color-muted)] mb-4 leading-relaxed">
-                  {skill.description || "No description"}
+                  {skill.description || "暂无描述"}
                 </p>
                 <div className="pt-3 border-t border-white/5">
-                  <Button size="sm" variant="danger" onClick={() => { if (confirm("Delete?")) deleteMut.mutate(skill.id); }}>
-                    <Trash2 size={14} /> Delete
+                  <Button size="sm" variant="danger" onClick={() => { if (confirm("确定删除？")) deleteMut.mutate(skill.id); }}>
+                    <Trash2 size={14} /> 删除
                   </Button>
                 </div>
               </CardContent>
@@ -85,7 +85,7 @@ export function SkillsPage() {
         </div>
       )}
 
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create Skill">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="创建技能">
         <SkillForm
           onSubmit={(d) => createMut.mutate(d)}
           onCancel={() => setShowCreate(false)}
@@ -104,18 +104,18 @@ function SkillForm({ onSubmit, onCancel, loading }: {
 
   return (
     <>
-      <FormGroup><Label>Name</Label><Input value={form.name} onChange={set("name")} /></FormGroup>
-      <FormGroup><Label>Description</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
-      <FormGroup><Label>Type</Label>
+      <FormGroup><Label>名称</Label><Input value={form.name} onChange={set("name")} /></FormGroup>
+      <FormGroup><Label>描述</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
+      <FormGroup><Label>类型</Label>
         <Select value={form.type} onChange={set("type")}>
-          <option value="builtin">Builtin</option>
-          <option value="custom">Custom</option>
+          <option value="builtin">内置</option>
+          <option value="custom">自定义</option>
           <option value="mcp">MCP</option>
         </Select>
       </FormGroup>
       <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
-        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
-        <Button onClick={() => onSubmit(form)} disabled={!form.name || loading}>{loading ? "Saving..." : "Create"}</Button>
+        <Button variant="secondary" onClick={onCancel}>取消</Button>
+        <Button onClick={() => onSubmit(form)} disabled={!form.name || loading}>{loading ? "保存中..." : "创建"}</Button>
       </div>
     </>
   );

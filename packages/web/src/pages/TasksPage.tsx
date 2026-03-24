@@ -36,7 +36,7 @@ export function TasksPage() {
   return (
     <div>
       <PageHeader
-        title="Tasks"
+        title="任务"
         action={
           <div className="flex items-center gap-2">
             <div className="flex bg-white/5 rounded-full p-0.5 border border-white/10">
@@ -48,7 +48,7 @@ export function TasksPage() {
                     : "text-[var(--color-muted)] hover:text-white"
                 }`}
               >
-                <LayoutGrid size={12} /> Board
+                <LayoutGrid size={12} /> 看板
               </button>
               <button
                 onClick={() => setView("list")}
@@ -58,10 +58,10 @@ export function TasksPage() {
                     : "text-[var(--color-muted)] hover:text-white"
                 }`}
               >
-                <List size={12} /> List
+                <List size={12} /> 列表
               </button>
             </div>
-            <Button onClick={() => setShowCreate(true)}><Plus size={16} /> New Task</Button>
+            <Button onClick={() => setShowCreate(true)}><Plus size={16} /> 新建任务</Button>
           </div>
         }
       />
@@ -70,7 +70,7 @@ export function TasksPage() {
         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-muted)]/50" />
         <Input
           className="pl-11"
-          placeholder="Search tasks by ID, title, or description..."
+          placeholder="按 ID、标题或描述搜索任务..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -92,7 +92,7 @@ export function TasksPage() {
                   ))}
                   {col.length === 0 && (
                     <div className="border border-dashed border-white/5 rounded-xl p-6 text-center">
-                      <p className="text-xs font-mono text-white/15">Empty</p>
+                      <p className="text-xs font-mono text-white/15">暂无</p>
                     </div>
                   )}
                 </div>
@@ -104,7 +104,7 @@ export function TasksPage() {
         <Card hover={false}>
           <CardContent className="p-0">
             {topLevelTasks.length === 0 ? (
-              <EmptyState icon={<ListTodo size={48} />} message="No tasks found" />
+              <EmptyState icon={<ListTodo size={48} />} message="暂无任务" />
             ) : (
               <div className="divide-y divide-white/5">
                 {topLevelTasks.map((task: any) => (
@@ -122,7 +122,7 @@ export function TasksPage() {
         </Card>
       )}
 
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create Task">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="创建任务">
         <TaskForm
           agents={agents}
           projects={projects}
@@ -194,7 +194,7 @@ function TaskRow({
           {detail.subtasks?.length > 0 && (
             <div className="bg-black/30 rounded-xl p-4 border border-white/5">
               <p className="text-xs font-mono font-semibold text-[var(--color-muted)] mb-3 tracking-wider uppercase">
-                Subtasks ({detail.subtaskProgress.completed}/{detail.subtaskProgress.total})
+                子任务 ({detail.subtaskProgress.completed}/{detail.subtaskProgress.total})
               </p>
               <div className="space-y-2">
                 {detail.subtasks.map((sub: any) => (
@@ -210,7 +210,7 @@ function TaskRow({
           {detail.events?.length > 0 && (
             <div>
               <p className="text-xs font-mono font-semibold text-[var(--color-muted)] mb-3 tracking-wider uppercase">
-                Event History
+                事件历史
               </p>
               <div className="relative pl-4 border-l border-[#F7931A]/20 space-y-2">
                 {detail.events.slice(0, 5).map((ev: any) => (
@@ -245,34 +245,34 @@ function TaskForm({
 
   return (
     <>
-      <FormGroup><Label>Title</Label><Input value={form.title} onChange={set("title")} /></FormGroup>
-      <FormGroup><Label>Description</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
+      <FormGroup><Label>标题</Label><Input value={form.title} onChange={set("title")} /></FormGroup>
+      <FormGroup><Label>描述</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
       <div className="grid grid-cols-2 gap-4">
-        <FormGroup><Label>Project</Label>
+        <FormGroup><Label>项目</Label>
           <Select value={form.projectId} onChange={set("projectId")}>
-            <option value="">None</option>
+            <option value="">无</option>
             {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Select>
         </FormGroup>
-        <FormGroup><Label>Priority</Label>
+        <FormGroup><Label>优先级</Label>
           <Select value={form.priority} onChange={set("priority")}>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
+            <option value="low">低</option>
+            <option value="medium">中</option>
+            <option value="high">高</option>
+            <option value="urgent">紧急</option>
           </Select>
         </FormGroup>
       </div>
-      <FormGroup><Label>Assign to Agent</Label>
+      <FormGroup><Label>分配给智能体</Label>
         <Select value={form.assignedAgentId} onChange={set("assignedAgentId")}>
-          <option value="">Unassigned</option>
+          <option value="">未分配</option>
           {agents.map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </Select>
       </FormGroup>
       <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
-        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+        <Button variant="secondary" onClick={onCancel}>取消</Button>
         <Button onClick={() => onSubmit(form)} disabled={!form.title || loading}>
-          {loading ? "Creating..." : "Create"}
+          {loading ? "创建中..." : "创建"}
         </Button>
       </div>
     </>

@@ -31,12 +31,12 @@ export function ProjectsPage() {
   return (
     <div>
       <PageHeader
-        title="Projects"
-        action={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> New Project</Button>}
+        title="项目"
+        action={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> 新建项目</Button>}
       />
 
       {projects.length === 0 ? (
-        <EmptyState icon={<FolderKanban size={48} />} message="No projects yet." />
+        <EmptyState icon={<FolderKanban size={48} />} message="暂无项目。" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {projects.map((proj: any) => (
@@ -52,7 +52,7 @@ export function ProjectsPage() {
                   <StatusBadge status={proj.status} />
                 </div>
                 <p className="text-sm text-[var(--color-muted)] mb-3 line-clamp-2 leading-relaxed">
-                  {proj.description || "No description"}
+                  {proj.description || "暂无描述"}
                 </p>
                 {proj.repoUrl && (
                   <a
@@ -67,9 +67,9 @@ export function ProjectsPage() {
                 )}
                 <div className="flex gap-2 pt-3 border-t border-white/5">
                   <Button size="sm" variant="ghost" onClick={() => setEditing(proj)}>
-                    <Edit size={14} /> Edit
+                    <Edit size={14} /> 编辑
                   </Button>
-                  <Button size="sm" variant="danger" onClick={() => { if (confirm("Delete?")) deleteMut.mutate(proj.id); }}>
+                  <Button size="sm" variant="danger" onClick={() => { if (confirm("确定删除？")) deleteMut.mutate(proj.id); }}>
                     <Trash2 size={14} />
                   </Button>
                 </div>
@@ -86,7 +86,7 @@ export function ProjectsPage() {
       <Modal
         open={showCreate || !!editing}
         onClose={() => { setShowCreate(false); setEditing(null); }}
-        title={editing ? "Edit Project" : "Create Project"}
+        title={editing ? "编辑项目" : "创建项目"}
       >
         <ProjectForm
           initial={editing}
@@ -109,12 +109,12 @@ function ProjectForm({ initial, onSubmit, onCancel, loading }: {
 
   return (
     <>
-      <FormGroup><Label>Name</Label><Input value={form.name} onChange={set("name")} placeholder="e.g. AF" /></FormGroup>
-      <FormGroup><Label>Description</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
-      <FormGroup><Label>Repo URL</Label><Input value={form.repoUrl} onChange={set("repoUrl")} placeholder="https://github.com/..." /></FormGroup>
+      <FormGroup><Label>名称</Label><Input value={form.name} onChange={set("name")} placeholder="例如：AF" /></FormGroup>
+      <FormGroup><Label>描述</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
+      <FormGroup><Label>仓库地址</Label><Input value={form.repoUrl} onChange={set("repoUrl")} placeholder="https://github.com/..." /></FormGroup>
       <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
-        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
-        <Button onClick={() => onSubmit(form)} disabled={!form.name || loading}>{loading ? "Saving..." : "Save"}</Button>
+        <Button variant="secondary" onClick={onCancel}>取消</Button>
+        <Button onClick={() => onSubmit(form)} disabled={!form.name || loading}>{loading ? "保存中..." : "保存"}</Button>
       </div>
     </>
   );

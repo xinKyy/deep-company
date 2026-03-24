@@ -14,15 +14,15 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/agents", icon: Bot, label: "Agents" },
-  { to: "/sops", icon: GitBranch, label: "SOPs" },
-  { to: "/tasks", icon: ListTodo, label: "Tasks" },
-  { to: "/projects", icon: FolderKanban, label: "Projects" },
-  { to: "/skills", icon: Wrench, label: "Skills" },
-  { to: "/mcps", icon: Server, label: "MCPs" },
-  { to: "/messages", icon: MessageSquare, label: "Messages" },
-  { to: "/env-vars", icon: KeyRound, label: "Env Vars" },
+  { to: "/", icon: LayoutDashboard, label: "仪表盘" },
+  { to: "/agents", icon: Bot, label: "智能体" },
+  { to: "/sops", icon: GitBranch, label: "流程" },
+  { to: "/tasks", icon: ListTodo, label: "任务" },
+  { to: "/projects", icon: FolderKanban, label: "项目" },
+  { to: "/skills", icon: Wrench, label: "技能" },
+  { to: "/mcps", icon: Server, label: "MCP 服务" },
+  { to: "/messages", icon: MessageSquare, label: "消息" },
+  { to: "/env-vars", icon: KeyRound, label: "环境变量" },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -39,7 +39,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 AI Dev Pro
               </h1>
               <p className="text-[10px] font-mono text-[var(--color-muted)] tracking-widest uppercase">
-                Agent Control
+                智能体控制台
               </p>
             </div>
           </div>
@@ -84,7 +84,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
             </span>
             <span className="text-[10px] font-mono text-[var(--color-muted)] tracking-wider uppercase">
-              System Online
+              系统在线
             </span>
           </div>
         </div>

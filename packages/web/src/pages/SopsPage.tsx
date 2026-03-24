@@ -26,12 +26,12 @@ export function SopsPage() {
   return (
     <div>
       <PageHeader
-        title="SOPs"
-        action={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> New SOP</Button>}
+        title="标准流程 (SOP)"
+        action={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> 新建流程</Button>}
       />
 
       {sops.length === 0 ? (
-        <EmptyState icon={<GitBranch size={48} />} message="No SOPs defined yet." />
+        <EmptyState icon={<GitBranch size={48} />} message="暂未定义流程。" />
       ) : (
         <div className="space-y-4">
           {sops.map((sop: any) => (
@@ -40,13 +40,13 @@ export function SopsPage() {
               sop={sop}
               expanded={expanded === sop.id}
               onToggle={() => setExpanded(expanded === sop.id ? null : sop.id)}
-              onDelete={() => { if (confirm("Delete?")) deleteMut.mutate(sop.id); }}
+              onDelete={() => { if (confirm("确定删除？")) deleteMut.mutate(sop.id); }}
             />
           ))}
         </div>
       )}
 
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create SOP">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="创建流程">
         <SopForm
           onSubmit={(d) => createMut.mutate(d)}
           onCancel={() => setShowCreate(false)}
@@ -89,7 +89,7 @@ function SopCard({ sop, expanded, onToggle, onDelete }: {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-heading font-semibold text-white">{sop.name}</h3>
-          <p className="text-xs text-[var(--color-muted)] truncate">{sop.description || "No description"}</p>
+          <p className="text-xs text-[var(--color-muted)] truncate">{sop.description || "暂无描述"}</p>
         </div>
         <Badge variant="orange">{sop.triggerType}</Badge>
         <Button size="sm" variant="danger" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
@@ -100,14 +100,14 @@ function SopCard({ sop, expanded, onToggle, onDelete }: {
         <CardContent className="border-t border-white/5 pt-5">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-mono font-semibold text-[var(--color-muted)] tracking-wider uppercase">
-              Steps ({steps.length})
+              步骤 ({steps.length})
             </p>
             <Button size="sm" variant="secondary" onClick={() => setShowAddStep(true)}>
-              <Plus size={14} /> Add Step
+              <Plus size={14} /> 添加步骤
             </Button>
           </div>
           {steps.length === 0 ? (
-            <p className="text-sm text-[var(--color-muted)]">No steps defined.</p>
+            <p className="text-sm text-[var(--color-muted)]">暂无步骤。</p>
           ) : (
             <div className="relative pl-6 border-l border-[#F7931A]/20 space-y-3">
               {steps.map((step: any, i: number) => (
@@ -119,7 +119,7 @@ function SopCard({ sop, expanded, onToggle, onDelete }: {
                       <p className="text-sm font-medium text-white">{step.name}</p>
                       <p className="text-xs font-mono text-[var(--color-muted)] tracking-wider">{step.actionType}</p>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete step?")) deleteStepMut.mutate(step.id); }}>
+                    <Button size="sm" variant="ghost" onClick={() => { if (confirm("确定删除该步骤？")) deleteStepMut.mutate(step.id); }}>
                       <Trash2 size={12} />
                     </Button>
                   </div>
@@ -152,19 +152,19 @@ function SopForm({ onSubmit, onCancel, loading }: {
 
   return (
     <>
-      <FormGroup><Label>Name</Label><Input value={form.name} onChange={set("name")} placeholder="e.g. Handle Feature Request" /></FormGroup>
-      <FormGroup><Label>Description</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
-      <FormGroup><Label>Trigger Type</Label>
+      <FormGroup><Label>名称</Label><Input value={form.name} onChange={set("name")} placeholder="例如：处理功能需求" /></FormGroup>
+      <FormGroup><Label>描述</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
+      <FormGroup><Label>触发类型</Label>
         <Select value={form.triggerType} onChange={set("triggerType")}>
-          <option value="intent">Intent (LLM matches)</option>
-          <option value="keyword">Keyword</option>
-          <option value="manual">Manual</option>
-          <option value="event">Event</option>
+          <option value="intent">意图匹配 (LLM)</option>
+          <option value="keyword">关键词</option>
+          <option value="manual">手动</option>
+          <option value="event">事件</option>
         </Select>
       </FormGroup>
       <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
-        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
-        <Button onClick={() => onSubmit(form)} disabled={!form.name || loading}>{loading ? "Saving..." : "Create"}</Button>
+        <Button variant="secondary" onClick={onCancel}>取消</Button>
+        <Button onClick={() => onSubmit(form)} disabled={!form.name || loading}>{loading ? "保存中..." : "创建"}</Button>
       </div>
     </>
   );
@@ -180,23 +180,23 @@ function StepForm({ stepOrder, onSubmit, onCancel, loading }: {
 
   return (
     <>
-      <FormGroup><Label>Step Name</Label><Input value={form.name} onChange={set("name")} /></FormGroup>
-      <FormGroup><Label>Action Type</Label>
+      <FormGroup><Label>步骤名称</Label><Input value={form.name} onChange={set("name")} /></FormGroup>
+      <FormGroup><Label>动作类型</Label>
         <Select value={form.actionType} onChange={set("actionType")}>
-          <option value="llm_call">LLM Call</option>
-          <option value="skill_call">Skill Call</option>
-          <option value="mcp_call">MCP Call</option>
-          <option value="human_input">Human Input</option>
-          <option value="notify">Notify</option>
-          <option value="create_task">Create Task</option>
-          <option value="transition_task">Transition Task</option>
-          <option value="condition">Condition</option>
+          <option value="llm_call">LLM 调用</option>
+          <option value="skill_call">技能调用</option>
+          <option value="mcp_call">MCP 调用</option>
+          <option value="human_input">人工输入</option>
+          <option value="notify">通知</option>
+          <option value="create_task">创建任务</option>
+          <option value="transition_task">流转任务</option>
+          <option value="condition">条件判断</option>
         </Select>
       </FormGroup>
       <div className="flex justify-end gap-2 mt-4">
-        <Button size="sm" variant="secondary" onClick={onCancel}>Cancel</Button>
+        <Button size="sm" variant="secondary" onClick={onCancel}>取消</Button>
         <Button size="sm" onClick={() => onSubmit(form)} disabled={!form.name || loading}>
-          {loading ? "Adding..." : "Add Step"}
+          {loading ? "添加中..." : "添加步骤"}
         </Button>
       </div>
     </>

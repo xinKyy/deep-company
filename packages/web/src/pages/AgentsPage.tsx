@@ -31,19 +31,19 @@ export function AgentsPage() {
   return (
     <div>
       <PageHeader
-        title="Agents"
-        action={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> New Agent</Button>}
+        title="智能体"
+        action={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> 新建智能体</Button>}
       />
 
       {isLoading ? (
         <div className="flex items-center gap-3 text-[var(--color-muted)]">
           <div className="w-4 h-4 border-2 border-[#F7931A]/30 border-t-[#F7931A] rounded-full animate-spin" />
-          <span className="text-sm font-mono">Loading agents...</span>
+          <span className="text-sm font-mono">加载中...</span>
         </div>
       ) : agents.length === 0 ? (
         <EmptyState
           icon={<Bot size={48} />}
-          message="No agents created yet. Click 'New Agent' to get started."
+          message="暂无智能体，点击「新建智能体」开始创建。"
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -64,7 +64,7 @@ export function AgentsPage() {
                 </div>
 
                 <p className="text-sm text-[var(--color-muted)] mb-4 line-clamp-2 leading-relaxed">
-                  {agent.description || "No description"}
+                  {agent.description || "暂无描述"}
                 </p>
 
                 <div className="space-y-2 mb-4">
@@ -79,16 +79,16 @@ export function AgentsPage() {
                         <span>@{agent.tgBotUsername}</span>
                       </>
                     ) : (
-                      <span className="text-white/20">Bot not configured</span>
+                      <span className="text-white/20">未配置 Bot</span>
                     )}
                   </div>
                 </div>
 
                 <div className="flex gap-2 pt-3 border-t border-white/5">
                   <Button size="sm" variant="ghost" onClick={() => setEditing(agent)}>
-                    <Edit size={14} /> Edit
+                    <Edit size={14} /> 编辑
                   </Button>
-                  <Button size="sm" variant="danger" onClick={() => { if (confirm("Delete this agent?")) deleteMut.mutate(agent.id); }}>
+                  <Button size="sm" variant="danger" onClick={() => { if (confirm("确定删除该智能体？")) deleteMut.mutate(agent.id); }}>
                     <Trash2 size={14} />
                   </Button>
                 </div>
@@ -105,7 +105,7 @@ export function AgentsPage() {
       <AgentFormModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        title="Create Agent"
+        title="创建智能体"
         onSubmit={(data) => createMut.mutate(data)}
         loading={createMut.isPending}
       />
@@ -114,7 +114,7 @@ export function AgentsPage() {
         <AgentFormModal
           open={true}
           onClose={() => setEditing(null)}
-          title="Edit Agent"
+          title="编辑智能体"
           initial={editing}
           onSubmit={(data) => updateMut.mutate({ id: editing.id, ...data })}
           loading={updateMut.isPending}
@@ -145,11 +145,11 @@ function AgentFormModal({
 
   return (
     <Modal open={open} onClose={onClose} title={title}>
-      <FormGroup><Label>Name</Label><Input value={form.name} onChange={set("name")} placeholder="e.g. PM Agent" /></FormGroup>
-      <FormGroup><Label>Description</Label><Textarea value={form.description} onChange={set("description")} placeholder="Agent description..." /></FormGroup>
-      <FormGroup><Label>System Prompt</Label><Textarea value={form.systemPrompt} onChange={set("systemPrompt")} placeholder="You are a project manager..." className="min-h-[120px]" /></FormGroup>
+      <FormGroup><Label>名称</Label><Input value={form.name} onChange={set("name")} placeholder="例如：PM Agent" /></FormGroup>
+      <FormGroup><Label>描述</Label><Textarea value={form.description} onChange={set("description")} placeholder="智能体描述..." /></FormGroup>
+      <FormGroup><Label>系统提示词</Label><Textarea value={form.systemPrompt} onChange={set("systemPrompt")} placeholder="你是一个项目经理..." className="min-h-[120px]" /></FormGroup>
       <div className="grid grid-cols-2 gap-4">
-        <FormGroup><Label>LLM Provider</Label>
+        <FormGroup><Label>LLM 提供商</Label>
           <Select value={form.llmProvider} onChange={set("llmProvider")}>
             <option value="openai">OpenAI</option>
             <option value="anthropic">Anthropic</option>
@@ -157,25 +157,25 @@ function AgentFormModal({
             <option value="google">Google</option>
           </Select>
         </FormGroup>
-        <FormGroup><Label>LLM Model</Label><Input value={form.llmModel} onChange={set("llmModel")} /></FormGroup>
+        <FormGroup><Label>LLM 模型</Label><Input value={form.llmModel} onChange={set("llmModel")} /></FormGroup>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <FormGroup><Label>TG Bot Token</Label><Input value={form.tgBotToken} onChange={set("tgBotToken")} type="password" /></FormGroup>
-        <FormGroup><Label>TG Bot Username</Label><Input value={form.tgBotUsername} onChange={set("tgBotUsername")} placeholder="without @" /></FormGroup>
+        <FormGroup><Label>TG Bot 用户名</Label><Input value={form.tgBotUsername} onChange={set("tgBotUsername")} placeholder="不含 @" /></FormGroup>
       </div>
       {initial && (
-        <FormGroup><Label>Status</Label>
+        <FormGroup><Label>状态</Label>
           <Select value={form.status} onChange={set("status")}>
-            <option value="active">Active</option>
-            <option value="paused">Paused</option>
-            <option value="disabled">Disabled</option>
+            <option value="active">活跃</option>
+            <option value="paused">已暂停</option>
+            <option value="disabled">已禁用</option>
           </Select>
         </FormGroup>
       )}
       <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
-        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button variant="secondary" onClick={onClose}>取消</Button>
         <Button onClick={() => onSubmit(form)} disabled={!form.name || loading}>
-          {loading ? "Saving..." : "Save"}
+          {loading ? "保存中..." : "保存"}
         </Button>
       </div>
     </Modal>

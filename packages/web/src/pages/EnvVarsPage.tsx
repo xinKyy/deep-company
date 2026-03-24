@@ -38,13 +38,13 @@ const CATEGORY_META: Record<
   jenkins: { label: "Jenkins", icon: HardHat, variant: "warning" },
   codex: { label: "Codex", icon: Terminal, variant: "success" },
   google: { label: "Google", icon: FileText, variant: "orange" },
-  custom: { label: "Custom", icon: Settings2, variant: "default" },
+  custom: { label: "自定义", icon: Settings2, variant: "default" },
 };
 
 const PRESET_VARS = [
-  { key: "GITHUB_TOKEN", description: "GitHub Personal Access Token", category: "git" },
-  { key: "GITLAB_TOKEN", description: "GitLab Personal Access Token", category: "git" },
-  { key: "JENKINS_TOKEN", description: "Jenkins API Token (user:token format)", category: "jenkins" },
+  { key: "GITHUB_TOKEN", description: "GitHub 个人访问令牌", category: "git" },
+  { key: "GITLAB_TOKEN", description: "GitLab 个人访问令牌", category: "git" },
+  { key: "JENKINS_TOKEN", description: "Jenkins API 令牌（user:token 格式）", category: "jenkins" },
 ];
 
 export function EnvVarsPage() {
@@ -90,10 +90,10 @@ export function EnvVarsPage() {
   return (
     <div>
       <PageHeader
-        title="Environment Variables"
+        title="环境变量"
         action={
           <Button onClick={() => setShowCreate(true)}>
-            <Plus size={16} /> Add Variable
+            <Plus size={16} /> 添加变量
           </Button>
         }
       />
@@ -104,7 +104,7 @@ export function EnvVarsPage() {
             <div className="flex items-center gap-2 mb-4">
               <Shield size={14} className="text-yellow-400" />
               <h3 className="text-xs font-mono font-semibold text-yellow-400 tracking-wider uppercase">
-                Recommended Variables
+                推荐变量
               </h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -158,7 +158,7 @@ export function EnvVarsPage() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<KeyRound size={48} />}
-          message="No environment variables configured."
+          message="暂未配置环境变量。"
         />
       ) : (
         <div className="space-y-3">
@@ -180,12 +180,12 @@ export function EnvVarsPage() {
                         <Badge variant={meta.variant}>{meta.label}</Badge>
                         {v.isSecret && (
                           <span className="text-[10px] text-[var(--color-muted)] flex items-center gap-1">
-                            <EyeOff size={10} /> secret
+                            <EyeOff size={10} /> 敏感
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-[var(--color-muted)] truncate">
-                        {v.description || "No description"}
+                        {v.description || "暂无描述"}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -205,7 +205,7 @@ export function EnvVarsPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => {
-                          if (confirm(`Delete "${v.key}"?`))
+                          if (confirm(`确定删除 "${v.key}"？`))
                             deleteMut.mutate(v.id);
                         }}
                       >
@@ -223,7 +223,7 @@ export function EnvVarsPage() {
       <Modal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        title="Add Environment Variable"
+        title="添加环境变量"
       >
         <EnvVarForm
           onSubmit={(d) => createMut.mutate(d)}
@@ -235,7 +235,7 @@ export function EnvVarsPage() {
       <Modal
         open={!!editing}
         onClose={() => setEditing(null)}
-        title="Edit Environment Variable"
+        title="编辑环境变量"
       >
         {editing && (
           <EnvVarForm
@@ -277,7 +277,7 @@ function EnvVarForm({
   return (
     <>
       <FormGroup>
-        <Label>Key</Label>
+        <Label>键名</Label>
         <Input
           id="env-var-key"
           value={form.key}
@@ -287,13 +287,13 @@ function EnvVarForm({
         />
       </FormGroup>
       <FormGroup>
-        <Label>Value</Label>
+        <Label>值</Label>
         <div className="relative">
           <Input
             type={showValue ? "text" : "password"}
             value={form.value}
             onChange={set("value")}
-            placeholder={initial ? "(unchanged)" : "Enter value..."}
+            placeholder={initial ? "（未修改）" : "请输入值..."}
             className="pr-12"
           />
           <button
@@ -306,21 +306,21 @@ function EnvVarForm({
         </div>
       </FormGroup>
       <FormGroup>
-        <Label>Description</Label>
+        <Label>描述</Label>
         <Textarea
           value={form.description}
           onChange={set("description")}
-          placeholder="What this variable is used for..."
+          placeholder="这个变量的用途..."
         />
       </FormGroup>
       <FormGroup>
-        <Label>Category</Label>
+        <Label>分类</Label>
         <Select value={form.category} onChange={set("category")}>
           <option value="git">Git (GitHub / GitLab)</option>
           <option value="jenkins">Jenkins</option>
           <option value="codex">Codex CLI</option>
-          <option value="google">Google (gog)</option>
-          <option value="custom">Custom</option>
+          <option value="google">Google</option>
+          <option value="custom">自定义</option>
         </Select>
       </FormGroup>
       <FormGroup>
@@ -332,13 +332,13 @@ function EnvVarForm({
             className="w-4 h-4 rounded accent-[#F7931A]"
           />
           <span className="text-sm text-[var(--color-muted)]">
-            Secret value (masked in UI)
+            敏感值（界面中隐藏显示）
           </span>
         </div>
       </FormGroup>
       <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
         <Button variant="secondary" onClick={onCancel}>
-          Cancel
+          取消
         </Button>
         <Button
           onClick={() => {
@@ -348,7 +348,7 @@ function EnvVarForm({
           }}
           disabled={(!initial && !form.key) || loading}
         >
-          {loading ? "Saving..." : initial ? "Update" : "Create"}
+          {loading ? "保存中..." : initial ? "更新" : "创建"}
         </Button>
       </div>
     </>

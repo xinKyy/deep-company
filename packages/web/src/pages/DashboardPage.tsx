@@ -17,17 +17,17 @@ export function DashboardPage() {
   const { data: sops = [] } = useQuery({ queryKey: ["sops"], queryFn: api.sops.list });
 
   const stats = [
-    { label: "Agents", value: agents.length, active: agents.filter((a: any) => a.status === "active").length },
-    { label: "Tasks", value: tasks.length, active: tasks.filter((t: any) => t.status === "in_progress").length },
-    { label: "Projects", value: projects.length, active: projects.filter((p: any) => p.status === "active").length },
-    { label: "SOPs", value: sops.length, active: sops.length },
+    { label: "智能体", value: agents.length, active: agents.filter((a: any) => a.status === "active").length },
+    { label: "任务", value: tasks.length, active: tasks.filter((t: any) => t.status === "in_progress").length },
+    { label: "项目", value: projects.length, active: projects.filter((p: any) => p.status === "active").length },
+    { label: "流程", value: sops.length, active: sops.length },
   ];
 
   const recentTasks = tasks.slice(0, 10);
 
   return (
     <div>
-      <PageHeader title="Dashboard" />
+      <PageHeader title="仪表盘" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
         {stats.map(({ label, value, active }, i) => {
@@ -43,7 +43,7 @@ export function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <GlowDot color="orange" />
                       <span className="text-xs font-mono text-[var(--color-muted)]">
-                        {active} active
+                        {active} 个活跃
                       </span>
                     </div>
                   </div>
@@ -64,12 +64,12 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card hover={false}>
           <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
-            <h3 className="font-heading font-semibold text-white">Recent Tasks</h3>
-            <span className="text-xs font-mono text-[var(--color-muted)]">{recentTasks.length} items</span>
+            <h3 className="font-heading font-semibold text-white">最近任务</h3>
+            <span className="text-xs font-mono text-[var(--color-muted)]">{recentTasks.length} 条</span>
           </div>
           <CardContent className="p-0">
             {recentTasks.length === 0 ? (
-              <p className="text-[var(--color-muted)] text-sm p-6">No tasks yet</p>
+              <p className="text-[var(--color-muted)] text-sm p-6">暂无任务</p>
             ) : (
               <div className="divide-y divide-white/5">
                 {recentTasks.map((task: any) => (
@@ -91,12 +91,12 @@ export function DashboardPage() {
 
         <Card hover={false}>
           <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
-            <h3 className="font-heading font-semibold text-white">Active Agents</h3>
-            <span className="text-xs font-mono text-[var(--color-muted)]">{agents.length} total</span>
+            <h3 className="font-heading font-semibold text-white">活跃智能体</h3>
+            <span className="text-xs font-mono text-[var(--color-muted)]">共 {agents.length} 个</span>
           </div>
           <CardContent className="p-0">
             {agents.length === 0 ? (
-              <p className="text-[var(--color-muted)] text-sm p-6">No agents configured</p>
+              <p className="text-[var(--color-muted)] text-sm p-6">暂未配置智能体</p>
             ) : (
               <div className="divide-y divide-white/5">
                 {agents.map((agent: any) => (

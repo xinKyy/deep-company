@@ -25,12 +25,12 @@ export function McpsPage() {
   return (
     <div>
       <PageHeader
-        title="MCP Servers"
-        action={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> New MCP Server</Button>}
+        title="MCP 服务"
+        action={<Button onClick={() => setShowCreate(true)}><Plus size={16} /> 新建 MCP 服务</Button>}
       />
 
       {servers.length === 0 ? (
-        <EmptyState icon={<Server size={48} />} message="No MCP servers configured." />
+        <EmptyState icon={<Server size={48} />} message="暂未配置 MCP 服务。" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {servers.map((srv: any) => (
@@ -43,7 +43,7 @@ export function McpsPage() {
                     </div>
                     <div>
                       <h3 className="font-heading font-semibold text-white">{srv.name}</h3>
-                      <p className="text-xs text-[var(--color-muted)]">{srv.description || "No description"}</p>
+                      <p className="text-xs text-[var(--color-muted)]">{srv.description || "暂无描述"}</p>
                     </div>
                   </div>
                   <StatusBadge status={srv.status} />
@@ -55,8 +55,8 @@ export function McpsPage() {
                   </p>
                 </div>
                 <div className="pt-3 border-t border-white/5">
-                  <Button size="sm" variant="danger" onClick={() => { if (confirm("Delete?")) deleteMut.mutate(srv.id); }}>
-                    <Trash2 size={14} /> Delete
+                  <Button size="sm" variant="danger" onClick={() => { if (confirm("确定删除？")) deleteMut.mutate(srv.id); }}>
+                    <Trash2 size={14} /> 删除
                   </Button>
                 </div>
               </CardContent>
@@ -69,7 +69,7 @@ export function McpsPage() {
         </div>
       )}
 
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Add MCP Server">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="添加 MCP 服务">
         <McpForm
           onSubmit={(d) => createMut.mutate(d)}
           onCancel={() => setShowCreate(false)}
@@ -88,17 +88,17 @@ function McpForm({ onSubmit, onCancel, loading }: {
 
   return (
     <>
-      <FormGroup><Label>Name</Label><Input value={form.name} onChange={set("name")} placeholder="e.g. filesystem" /></FormGroup>
-      <FormGroup><Label>Description</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
-      <FormGroup><Label>Command</Label><Input value={form.command} onChange={set("command")} placeholder="e.g. npx" /></FormGroup>
-      <FormGroup><Label>Arguments (space-separated)</Label><Input value={form.args} onChange={set("args")} placeholder="e.g. -y @modelcontextprotocol/server-filesystem /tmp" /></FormGroup>
+      <FormGroup><Label>名称</Label><Input value={form.name} onChange={set("name")} placeholder="例如：filesystem" /></FormGroup>
+      <FormGroup><Label>描述</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
+      <FormGroup><Label>命令</Label><Input value={form.command} onChange={set("command")} placeholder="例如：npx" /></FormGroup>
+      <FormGroup><Label>参数（空格分隔）</Label><Input value={form.args} onChange={set("args")} placeholder="例如：-y @modelcontextprotocol/server-filesystem /tmp" /></FormGroup>
       <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
-        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+        <Button variant="secondary" onClick={onCancel}>取消</Button>
         <Button
           onClick={() => onSubmit({ ...form, args: form.args.split(/\s+/).filter(Boolean) })}
           disabled={!form.name || !form.command || loading}
         >
-          {loading ? "Saving..." : "Create"}
+          {loading ? "保存中..." : "创建"}
         </Button>
       </div>
     </>

@@ -18,14 +18,14 @@ export function MessagesPage() {
 
   return (
     <div>
-      <PageHeader title="Messages" />
+      <PageHeader title="消息" />
 
       <div className="mb-6 max-w-sm">
         <label className="block text-xs font-mono text-[var(--color-muted)] mb-2 tracking-wider uppercase">
-          Select Agent
+          选择智能体
         </label>
         <Select value={selectedAgent} onChange={(e) => setSelectedAgent(e.target.value)}>
-          <option value="">Select an agent...</option>
+          <option value="">请选择智能体...</option>
           {agents.map((a: any) => (
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}
@@ -33,9 +33,9 @@ export function MessagesPage() {
       </div>
 
       {!selectedAgent ? (
-        <EmptyState icon={<MessageSquare size={48} />} message="Select an agent to view messages." />
+        <EmptyState icon={<MessageSquare size={48} />} message="请选择一个智能体以查看消息。" />
       ) : messages.length === 0 ? (
-        <EmptyState icon={<MessageSquare size={48} />} message="No messages recorded for this agent." />
+        <EmptyState icon={<MessageSquare size={48} />} message="该智能体暂无消息记录。" />
       ) : (
         <Card hover={false}>
           <CardContent className="p-0">
