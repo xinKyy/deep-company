@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "@ai-dev-pro/core": "workspace:*",
-    "grammy": "latest"
+    "grammy": "latest",
+    "https-proxy-agent": "^8.0.0"
   },
   "devDependencies": {
     "tsup": "latest",

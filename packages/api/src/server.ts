@@ -1,4 +1,14 @@
 import "dotenv/config";
+import { ProxyAgent, setGlobalDispatcher } from "undici";
+
+const proxyUrl =
+  process.env.HTTPS_PROXY || process.env.https_proxy ||
+  process.env.HTTP_PROXY || process.env.http_proxy;
+if (proxyUrl) {
+  setGlobalDispatcher(new ProxyAgent(proxyUrl));
+  console.log(`Global proxy set: ${proxyUrl}`);
+}
+
 import express from "express";
 import cors from "cors";
 import { initDb } from "@ai-dev-pro/core";

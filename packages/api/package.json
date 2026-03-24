@@ -11,15 +11,16 @@
   "dependencies": {
     "@ai-dev-pro/core": "workspace:*",
     "@ai-dev-pro/telegram": "workspace:*",
-    "express": "latest",
     "cors": "latest",
-    "dotenv": "latest"
+    "dotenv": "latest",
+    "express": "latest"
   },
   "devDependencies": {
-    "@types/express": "latest",
     "@types/cors": "latest",
+    "@types/express": "latest",
     "tsup": "latest",
     "tsx": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "undici": "^7.24.5"
   }
 }

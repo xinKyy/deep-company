@@ -1,4 +1,5 @@
 import { Bot, type Context as GrammyContext } from "grammy";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import type { AppContext } from "./types.js";
 import { createMessageHandler } from "./handlers/message-handler.js";
 
@@ -32,7 +33,15 @@ export class BotManager {
       return;
     }
 
-    const bot = new Bot(token);
+    const proxyUrl =
+      process.env.HTTPS_PROXY || process.env.https_proxy ||
+      process.env.HTTP_PROXY || process.env.http_proxy;
+
+    const bot = proxyUrl
+      ? new Bot(token, {
+          client: { baseFetchConfig: { agent: new HttpsProxyAgent(proxyUrl) as any } },
+        })
+      : new Bot(token);
     const handler = createMessageHandler(this.ctx, agentId);
 
     bot.on("message", async (grammyCtx) => {

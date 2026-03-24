@@ -46,7 +46,11 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
       });
 
       if (reply) {
-        await grammyCtx.reply(reply, { parse_mode: "Markdown" });
+        try {
+          await grammyCtx.reply(reply, { parse_mode: "Markdown" });
+        } catch {
+          await grammyCtx.reply(reply);
+        }
 
         await ctx.messageService.record({
           agentId,
