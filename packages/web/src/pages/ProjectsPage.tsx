@@ -5,7 +5,7 @@ import {
   Card, CardContent, PageHeader, Button, StatusBadge, EmptyState,
   Modal, Input, Textarea, Label, FormGroup,
 } from "../components/ui";
-import { Plus, Trash2, Edit } from "lucide-react";
+import { Plus, Trash2, Edit, FolderKanban, ExternalLink } from "lucide-react";
 
 export function ProjectsPage() {
   const qc = useQueryClient();
@@ -36,33 +36,58 @@ export function ProjectsPage() {
       />
 
       {projects.length === 0 ? (
-        <EmptyState message="No projects yet." />
+        <EmptyState icon={<FolderKanban size={48} />} message="No projects yet." />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {projects.map((proj: any) => (
-            <Card key={proj.id}>
+            <Card key={proj.id} className="group relative overflow-hidden">
               <CardContent>
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold">{proj.name}</h3>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#F7931A]/10 border border-[#F7931A]/20 flex items-center justify-center">
+                      <FolderKanban size={18} className="text-[#F7931A]" />
+                    </div>
+                    <h3 className="font-heading font-semibold text-white">{proj.name}</h3>
+                  </div>
                   <StatusBadge status={proj.status} />
                 </div>
-                <p className="text-sm text-[var(--color-text-secondary)] mb-2 line-clamp-2">{proj.description || "No description"}</p>
+                <p className="text-sm text-[var(--color-muted)] mb-3 line-clamp-2 leading-relaxed">
+                  {proj.description || "No description"}
+                </p>
                 {proj.repoUrl && (
-                  <p className="text-xs text-[var(--color-primary-light)] mb-3 truncate">{proj.repoUrl}</p>
+                  <a
+                    href={proj.repoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-mono text-[#F7931A] hover:text-[#FFD600] transition-colors mb-4 truncate max-w-full"
+                  >
+                    <ExternalLink size={11} />
+                    <span className="truncate">{proj.repoUrl}</span>
+                  </a>
                 )}
-                <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(proj)}><Edit size={14} /> Edit</Button>
+                <div className="flex gap-2 pt-3 border-t border-white/5">
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(proj)}>
+                    <Edit size={14} /> Edit
+                  </Button>
                   <Button size="sm" variant="danger" onClick={() => { if (confirm("Delete?")) deleteMut.mutate(proj.id); }}>
                     <Trash2 size={14} />
                   </Button>
                 </div>
               </CardContent>
+              <FolderKanban
+                size={100}
+                className="absolute -bottom-6 -right-6 text-white/[0.02] group-hover:text-white/[0.05] transition-colors duration-500"
+              />
             </Card>
           ))}
         </div>
       )}
 
-      <Modal open={showCreate || !!editing} onClose={() => { setShowCreate(false); setEditing(null); }} title={editing ? "Edit Project" : "Create Project"}>
+      <Modal
+        open={showCreate || !!editing}
+        onClose={() => { setShowCreate(false); setEditing(null); }}
+        title={editing ? "Edit Project" : "Create Project"}
+      >
         <ProjectForm
           initial={editing}
           onSubmit={(d) => editing ? updateMut.mutate({ id: editing.id, ...d }) : createMut.mutate(d)}
@@ -87,7 +112,7 @@ function ProjectForm({ initial, onSubmit, onCancel, loading }: {
       <FormGroup><Label>Name</Label><Input value={form.name} onChange={set("name")} placeholder="e.g. AF" /></FormGroup>
       <FormGroup><Label>Description</Label><Textarea value={form.description} onChange={set("description")} /></FormGroup>
       <FormGroup><Label>Repo URL</Label><Input value={form.repoUrl} onChange={set("repoUrl")} placeholder="https://github.com/..." /></FormGroup>
-      <div className="flex justify-end gap-2 mt-4">
+      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
         <Button variant="secondary" onClick={onCancel}>Cancel</Button>
         <Button onClick={() => onSubmit(form)} disabled={!form.name || loading}>{loading ? "Saving..." : "Save"}</Button>
       </div>

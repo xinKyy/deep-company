@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import {
   Card, CardContent, PageHeader, Button, StatusBadge,
-  Modal, Input, Textarea, Select, Label, FormGroup, EmptyState,
+  Modal, Input, Textarea, Select, Label, FormGroup, EmptyState, GlowDot,
 } from "../components/ui";
-import { Plus, Trash2, Edit } from "lucide-react";
+import { Plus, Trash2, Edit, Bot, Cpu } from "lucide-react";
 
 export function AgentsPage() {
   const qc = useQueryClient();
@@ -36,35 +36,67 @@ export function AgentsPage() {
       />
 
       {isLoading ? (
-        <p className="text-[var(--color-text-secondary)]">Loading...</p>
+        <div className="flex items-center gap-3 text-[var(--color-muted)]">
+          <div className="w-4 h-4 border-2 border-[#F7931A]/30 border-t-[#F7931A] rounded-full animate-spin" />
+          <span className="text-sm font-mono">Loading agents...</span>
+        </div>
       ) : agents.length === 0 ? (
-        <EmptyState message="No agents created yet. Click 'New Agent' to get started." />
+        <EmptyState
+          icon={<Bot size={48} />}
+          message="No agents created yet. Click 'New Agent' to get started."
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {agents.map((agent: any) => (
-            <Card key={agent.id}>
+            <Card key={agent.id} className="group relative overflow-hidden">
               <CardContent>
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold">{agent.name}</h3>
-                    <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{agent.id}</p>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#EA580C]/15 border border-[#EA580C]/30 flex items-center justify-center group-hover:shadow-[0_0_20px_rgba(234,88,12,0.3)] transition-shadow">
+                      <Bot size={18} className="text-[#F7931A]" />
+                    </div>
+                    <div>
+                      <h3 className="font-heading font-semibold text-white">{agent.name}</h3>
+                      <p className="text-[10px] font-mono text-[var(--color-muted)] tracking-wider">{agent.id}</p>
+                    </div>
                   </div>
                   <StatusBadge status={agent.status} />
                 </div>
-                <p className="text-sm text-[var(--color-text-secondary)] mb-3 line-clamp-2">
+
+                <p className="text-sm text-[var(--color-muted)] mb-4 line-clamp-2 leading-relaxed">
                   {agent.description || "No description"}
                 </p>
-                <div className="text-xs text-[var(--color-text-secondary)] space-y-1 mb-3">
-                  <p>LLM: {agent.llmProvider}/{agent.llmModel}</p>
-                  <p>Bot: {agent.tgBotUsername ? `@${agent.tgBotUsername}` : "Not configured"}</p>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-xs font-mono text-[var(--color-muted)]">
+                    <Cpu size={12} className="text-[#F7931A]/60" />
+                    <span>{agent.llmProvider}/{agent.llmModel}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-mono text-[var(--color-muted)]">
+                    {agent.tgBotUsername ? (
+                      <>
+                        <GlowDot color="green" />
+                        <span>@{agent.tgBotUsername}</span>
+                      </>
+                    ) : (
+                      <span className="text-white/20">Bot not configured</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(agent)}><Edit size={14} /> Edit</Button>
+
+                <div className="flex gap-2 pt-3 border-t border-white/5">
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(agent)}>
+                    <Edit size={14} /> Edit
+                  </Button>
                   <Button size="sm" variant="danger" onClick={() => { if (confirm("Delete this agent?")) deleteMut.mutate(agent.id); }}>
                     <Trash2 size={14} />
                   </Button>
                 </div>
               </CardContent>
+              <Bot
+                size={100}
+                className="absolute -bottom-6 -right-6 text-white/[0.02] group-hover:text-white/[0.05] transition-colors duration-500"
+              />
             </Card>
           ))}
         </div>
@@ -140,7 +172,7 @@ function AgentFormModal({
           </Select>
         </FormGroup>
       )}
-      <div className="flex justify-end gap-2 mt-4">
+      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
         <Button variant="secondary" onClick={onClose}>Cancel</Button>
         <Button onClick={() => onSubmit(form)} disabled={!form.name || loading}>
           {loading ? "Saving..." : "Save"}

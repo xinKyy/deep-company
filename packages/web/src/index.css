@@ -1,27 +1,151 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #6366f1;
-  --color-primary-light: #818cf8;
-  --color-primary-dark: #4f46e5;
-  --color-bg: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-tertiary: #334155;
-  --color-text: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-border: #334155;
+  --color-bg: #030304;
+  --color-surface: #0F1115;
+  --color-foreground: #FFFFFF;
+  --color-muted: #94A3B8;
+  --color-border: #1E293B;
+  --color-primary: #F7931A;
+  --color-primary-deep: #EA580C;
+  --color-gold: #FFD600;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
+  --color-info: #38bdf8;
+}
+
+@theme {
+  --font-heading: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  --color-void: #030304;
+  --color-surface: #0F1115;
+  --color-surface-hover: #181B22;
+  --color-dim-border: #1E293B;
+
+  --color-btc-orange: #F7931A;
+  --color-btc-deep: #EA580C;
+  --color-btc-gold: #FFD600;
+  --color-stardust: #94A3B8;
 }
 
 body {
   margin: 0;
   background: var(--color-bg);
-  color: var(--color-text);
+  color: var(--color-foreground);
   font-family: "Inter", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
   box-sizing: border-box;
+}
+
+.font-heading {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+}
+
+.font-body {
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.font-mono {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+.text-gradient-orange {
+  background: linear-gradient(to right, #EA580C, #F7931A);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(to right, #F7931A, #FFD600);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-grid-pattern {
+  background-size: 50px 50px;
+  background-image:
+    linear-gradient(to right, rgba(30, 41, 59, 0.4) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 41, 59, 0.4) 1px, transparent 1px);
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
+
+.glow-orange {
+  box-shadow: 0 0 20px -5px rgba(234, 88, 12, 0.5);
+}
+
+.glow-orange-intense {
+  box-shadow: 0 0 30px -5px rgba(247, 147, 26, 0.6);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(255, 214, 0, 0.3);
+}
+
+.glow-subtle {
+  box-shadow: 0 0 50px -10px rgba(247, 147, 26, 0.1);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 15px -5px rgba(247, 147, 26, 0.3); }
+  50% { box-shadow: 0 0 25px -5px rgba(247, 147, 26, 0.6); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.35);
+}
+
+/* Selection */
+::selection {
+  background: rgba(247, 147, 26, 0.3);
+  color: white;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-glow {
+    animation: none;
+  }
 }
