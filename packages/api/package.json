@@ -1,0 +1,25 @@
+{
+  "name": "@ai-dev-pro/api",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/server.ts",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsup src/server.ts --format esm",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@ai-dev-pro/core": "workspace:*",
+    "@ai-dev-pro/telegram": "workspace:*",
+    "express": "latest",
+    "cors": "latest",
+    "dotenv": "latest"
+  },
+  "devDependencies": {
+    "@types/express": "latest",
+    "@types/cors": "latest",
+    "tsup": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

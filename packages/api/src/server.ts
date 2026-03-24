@@ -1,0 +1,57 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import { initDb } from "@ai-dev-pro/core";
+import { agentRoutes } from "./routes/agents.js";
+import { sopRoutes } from "./routes/sops.js";
+import { taskRoutes } from "./routes/tasks.js";
+import { projectRoutes } from "./routes/projects.js";
+import { skillRoutes } from "./routes/skills.js";
+import { mcpRoutes } from "./routes/mcps.js";
+import { memoryRoutes } from "./routes/memories.js";
+import { messageRoutes } from "./routes/messages.js";
+import { createAppContext, type AppContext } from "./context.js";
+import { BotManager } from "@ai-dev-pro/telegram";
+
+const PORT = parseInt(process.env.API_PORT || "3000", 10);
+
+async function main() {
+  initDb();
+
+  const ctx = createAppContext();
+  const app = express();
+
+  app.use(cors());
+  app.use(express.json());
+
+  app.use((req, _res, next) => {
+    (req as any).ctx = ctx;
+    next();
+  });
+
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  app.use("/api/agents", agentRoutes);
+  app.use("/api/sops", sopRoutes);
+  app.use("/api/tasks", taskRoutes);
+  app.use("/api/projects", projectRoutes);
+  app.use("/api/skills", skillRoutes);
+  app.use("/api/mcps", mcpRoutes);
+  app.use("/api/memories", memoryRoutes);
+  app.use("/api/messages", messageRoutes);
+
+  const botManager = new BotManager(ctx);
+  await botManager.startAll();
+
+  app.listen(PORT, () => {
+    console.log(`API server running on http://localhost:${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/api/health`);
+  });
+}
+
+main().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});

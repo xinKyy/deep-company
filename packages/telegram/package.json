@@ -1,0 +1,18 @@
+{
+  "name": "@ai-dev-pro/telegram",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts"
+  },
+  "dependencies": {
+    "@ai-dev-pro/core": "workspace:*",
+    "grammy": "latest"
+  },
+  "devDependencies": {
+    "tsup": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@ai-dev-pro/core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "latest",
+    "drizzle-orm": "latest",
+    "nanoid": "latest"
+  },
+  "devDependencies": {
+    "drizzle-kit": "latest",
+    "@types/better-sqlite3": "latest",
+    "tsup": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}
