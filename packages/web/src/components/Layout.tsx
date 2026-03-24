@@ -9,6 +9,7 @@ import {
   Wrench,
   Server,
   MessageSquare,
+  KeyRound,
   Zap,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: "/skills", icon: Wrench, label: "Skills" },
   { to: "/mcps", icon: Server, label: "MCPs" },
   { to: "/messages", icon: MessageSquare, label: "Messages" },
+  { to: "/env-vars", icon: KeyRound, label: "Env Vars" },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {

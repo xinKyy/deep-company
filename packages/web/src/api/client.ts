@@ -78,4 +78,19 @@ export const api = {
       return request<any[]>(`/messages?${qs}`);
     },
   },
+  envVars: {
+    list: () => request<any[]>("/env-vars"),
+    create: (data: any) =>
+      request<any>("/env-vars", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: any) =>
+      request<any>(`/env-vars/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      request<any>(`/env-vars/${id}`, { method: "DELETE" }),
+  },
 };

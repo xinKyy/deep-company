@@ -20,6 +20,7 @@ import { skillRoutes } from "./routes/skills.js";
 import { mcpRoutes } from "./routes/mcps.js";
 import { memoryRoutes } from "./routes/memories.js";
 import { messageRoutes } from "./routes/messages.js";
+import { envVarRoutes } from "./routes/env-vars.js";
 import { createAppContext, type AppContext } from "./context.js";
 import { BotManager } from "@ai-dev-pro/telegram";
 
@@ -51,6 +52,7 @@ async function main() {
   app.use("/api/mcps", mcpRoutes);
   app.use("/api/memories", memoryRoutes);
   app.use("/api/messages", messageRoutes);
+  app.use("/api/env-vars", envVarRoutes);
 
   const botManager = new BotManager(ctx);
   await botManager.startAll();

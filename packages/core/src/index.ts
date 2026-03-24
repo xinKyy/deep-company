@@ -11,6 +11,8 @@ export { TaskService } from "./task/task-service.js";
 export { ProjectService } from "./project/project-service.js";
 export { SkillService } from "./skill/skill-service.js";
 export { McpService } from "./mcp/mcp-service.js";
+export { EnvVarService } from "./env-var/env-var-service.js";
+export type { CreateEnvVarInput } from "./env-var/env-var-service.js";
 export { MemoryService } from "./memory/memory-service.js";
 export { MessageService } from "./memory/message-service.js";
 export { LlmRouter, createOpenAIAdapter, createAnthropicAdapter } from "./llm/llm-router.js";

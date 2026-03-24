@@ -179,8 +179,9 @@ ai-dev-pro/
 | `messages` | TG 消息全量记录 | id, agent_id(FK), tg_chat_id, tg_message_id, direction, content | **UNIQUE(tg_chat_id, tg_message_id)** 去重 |
 | `memories` | Agent 记忆 | id, agent_id(FK), task_id(FK), type, content, metadata | — |
 | `group_configs` | TG 群组配置 | id, tg_chat_id, type, project_id(FK) | UNIQUE(tg_chat_id) |
+| `env_vars` | 环境变量 | id, key, value, description, category, is_secret | UNIQUE(key) |
 
-Schema 定义文件: `packages/core/src/db/schema.ts`
+Schema 定义文件: `packages/core/src/db/schema.ts` (14 张表)
 
 ---
 
@@ -286,6 +287,43 @@ Provider 注册在 `packages/api/src/context.ts` 的 `createAppContext()` 中，
 
 这些 Skill 同时也作为 LLM 的 tools 传给 AgentEngine。
 
+**系统 Skill (System)** (注册在 `packages/api/src/context.ts` 的 `registerSystemSkills()`):
+
+| 分类 | Skill 名称 | 功能 | 依赖环境变量 |
+|------|-----------|------|-------------|
+| Git | `git_clone` | 克隆仓库 (支持 token 鉴权) | GITHUB_TOKEN / GITLAB_TOKEN |
+| Git | `git_pull` | 拉取远端更新 | — |
+| Git | `git_push` | 推送到远端 | — |
+| Git | `git_commit` | 提交更改 (可选 add all) | — |
+| Git | `git_branch` | 创建/切换分支 | — |
+| Git | `git_merge` | 合并分支 | — |
+| Git | `git_status` | 查看工作区状态 | — |
+| Git | `git_log` | 查看提交日志 | — |
+| Git | `git_diff` | 查看差异 | — |
+| Git | `git_create_pr` | 创建 PR/MR (GitHub gh / GitLab API) | GITHUB_TOKEN / GITLAB_TOKEN |
+| Git | `git_trigger_action` | 触发 GitHub Actions workflow | GITHUB_TOKEN |
+| Jenkins | `jenkins_trigger_job` | 触发 Jenkins Job (支持参数/分支) | JENKINS_TOKEN |
+| Jenkins | `jenkins_get_job_status` | 获取 Job 构建状态 | JENKINS_TOKEN |
+| Jenkins | `jenkins_list_jobs` | 列出 Jenkins Jobs | JENKINS_TOKEN |
+| Codex | `codex_write_code` | 调用 Codex CLI 编写代码 | — |
+| Codex | `codex_explain` | 调用 Codex CLI 解释/分析 | — |
+| Google | `gog_create_doc` | 创建 Google 文档 | — |
+| Google | `gog_update_doc` | 修改 Google 文档内容 | — |
+| Google | `gog_read_doc` | 读取 Google 文档 | — |
+| Google | `gog_share_doc` | 修改文档共享权限 | — |
+| Google | `gog_list_docs` | 列出所有文档 | — |
+
+### 4.8 环境变量系统
+
+**类**: `EnvVarService` (`packages/core/src/env-var/env-var-service.ts`)
+
+为系统 Skill 提供安全的环境变量管理:
+- **DB 存储**: `env_vars` 表，支持 key/value/description/category/isSecret
+- **分类管理**: git / jenkins / codex / google / custom
+- **安全遮蔽**: `listSafe()` 对 secret 值返回 `••••••••`
+- **运行时解析**: `resolve(key)` / `resolveMany(keys)` 用于 Skill 执行时获取凭据
+- **WebUI 管理**: `/env-vars` 页面支持增删改查、分类过滤、推荐变量快速添加
+
 ### 4.6 记忆系统
 
 **两个 Service**:
@@ -330,6 +368,7 @@ Provider 注册在 `packages/api/src/context.ts` 的 `createAppContext()` 中，
 | `routes/mcps.ts` | `/api/mcps` | GET / POST / PUT /:id / DELETE /:id |
 | `routes/memories.ts` | `/api/memories` | GET ?agentId= / GET ?taskId= / POST / DELETE /:id |
 | `routes/messages.ts` | `/api/messages` | GET ?agentId= / GET ?chatId= |
+| `routes/env-vars.ts` | `/api/env-vars` | GET / GET /:id / POST / PUT /:id / DELETE /:id |
 
 ---
 
@@ -345,6 +384,7 @@ Provider 注册在 `packages/api/src/context.ts` 的 `createAppContext()` 中，
 | `SkillsPage` | `/skills` | 已注册 handler 展示 + 自定义 Skill CRUD |
 | `McpsPage` | `/mcps` | MCP Server 配置卡片 + CRUD |
 | `MessagesPage` | `/messages` | 按 Agent 筛选消息记录 (方向/用户/时间) |
+| `EnvVarsPage` | `/env-vars` | 环境变量管理 (增删改查 + 分类过滤 + 推荐变量) |
 
 **UI 组件库**: `packages/web/src/components/ui.tsx` — Card, Button, Input, Textarea, Select, Badge, StatusBadge, Modal, PageHeader, EmptyState, Label, FormGroup
 
@@ -364,6 +404,9 @@ Provider 注册在 `packages/api/src/context.ts` 的 `createAppContext()` 中，
 | 项目管理 | `packages/core/src/project/project-service.ts` |
 | Skill handler 注册与执行 | `packages/core/src/skill/skill-service.ts` |
 | 内置 Skill 注册 (6个) | `packages/api/src/context.ts` → `registerBuiltinSkills()` |
+| 系统 Skill 注册 (21个) | `packages/api/src/context.ts` → `registerSystemSkills()` |
+| 环境变量管理 | `packages/core/src/env-var/env-var-service.ts` |
+| 环境变量 API 路由 | `packages/api/src/routes/env-vars.ts` |
 | MCP Server 管理 | `packages/core/src/mcp/mcp-service.ts` |
 | 消息去重存储 | `packages/core/src/memory/message-service.ts` |
 | 记忆管理与检索 | `packages/core/src/memory/memory-service.ts` |

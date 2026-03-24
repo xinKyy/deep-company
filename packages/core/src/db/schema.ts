@@ -276,6 +276,27 @@ export const memories = sqliteTable("memories", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
+// ─── Environment Variables ───────────────────────────────────────────────────
+
+export const envVars = sqliteTable("env_vars", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull().default(""),
+  description: text("description").notNull().default(""),
+  category: text("category", {
+    enum: ["git", "jenkins", "codex", "google", "custom"],
+  })
+    .notNull()
+    .default("custom"),
+  isSecret: integer("is_secret", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
 // ─── Group Configs ───────────────────────────────────────────────────────────
 
 export const groupConfigs = sqliteTable("group_configs", {
