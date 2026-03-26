@@ -135,7 +135,20 @@ function registerBuiltinSkills(
 
   skillService.registerHandler("get_project_info", async (params) => {
     const { name } = params as any;
-    return projectService.getByName(name);
+    const exact = await projectService.getByName(name);
+    if (exact) return exact;
+    const fuzzy = await projectService.search(name);
+    if (fuzzy.length > 0) return fuzzy;
+    return null;
+  });
+
+  skillService.registerHandler("list_projects", async () => {
+    return projectService.list();
+  });
+
+  skillService.registerHandler("search_projects", async (params) => {
+    const { keyword } = params as any;
+    return projectService.search(keyword);
   });
 
   skillService.registerHandler("create_subtask", async (params, ctx) => {

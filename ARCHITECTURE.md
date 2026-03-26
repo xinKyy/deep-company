@@ -282,7 +282,9 @@ Provider 注册在 `packages/api/src/context.ts` 的 `createAppContext()` 中，
 | `update_task_status` | 更新任务状态 (带状态机校验) |
 | `search_tasks` | 按关键词搜索任务 |
 | `get_task_detail` | 获取任务详情 (含子任务进度 + 事件流) |
-| `get_project_info` | 按项目名获取项目信息 |
+| `get_project_info` | 按项目名获取项目信息（支持模糊匹配） |
+| `list_projects` | 列出所有已注册项目 |
+| `search_projects` | 按关键词搜索项目（匹配名称/描述/仓库URL） |
 | `create_subtask` | 创建子任务 |
 
 这些 Skill 同时也作为 LLM 的 tools 传给 AgentEngine。

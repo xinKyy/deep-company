@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, like, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { getDb, projects } from "../db/index.js";
 
@@ -60,6 +60,20 @@ export class ProjectService {
       .where(eq(projects.id, id))
       .returning();
     return project || null;
+  }
+
+  async search(keyword: string) {
+    const pattern = `%${keyword}%`;
+    return this.db
+      .select()
+      .from(projects)
+      .where(
+        or(
+          like(projects.name, pattern),
+          like(projects.description, pattern),
+          like(projects.repoUrl, pattern)
+        )
+      );
   }
 
   async delete(id: string) {

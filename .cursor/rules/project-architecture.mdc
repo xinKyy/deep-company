@@ -1,0 +1,55 @@
+---
+description: ai-dev-pro 项目架构和约定，所有 agent 和开发者编辑代码时应遵循
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+---
+
+# ai-dev-pro 项目架构
+
+## 概览
+
+ai-dev-pro 是一个 AI Agent 协作平台，支持多 Agent 通过 Telegram 接收指令、执行任务、调用 Skills/SOPs。
+
+## Monorepo 结构
+
+```
+packages/
+  core/       → 数据库 schema、Service 层（Agent/Task/Project/Skill/SOP/Memory）
+  api/        → Express HTTP API + Skill handler 注册（context.ts）
+  telegram/   → Telegram Bot 接入 + AgentEngine（LLM + tool calling）
+  web/        → React 前端管理界面
+```
+
+## 关键约定
+
+### 项目管理（Projects）
+
+- 项目信息存储在 `projects` 表（SQLite），字段包括 name、description、repoUrl、config
+- agent 可用工具：`get_project_info`（模糊匹配）、`list_projects`（列出全部）、`search_projects`（关键词搜索）
+- **用户可能用缩写或别名引用项目**（如 "AF" 指 "AI Fortuna"），agent 应先尝试精确匹配，失败后自动做模糊搜索
+- 如果模糊搜索也没有结果，使用 `list_projects` 列出所有项目让用户确认
+
+### Skills 系统
+
+- **内置 Skills**：注册在 `packages/api/src/context.ts` 的 `registerBuiltinSkills()`
+- **系统 Skills**（git、bash、jenkins、codex、google docs）：注册在同一文件的 `registerSystemSkills()`
+- 所有 Skill 同时作为 LLM function-calling tools 暴露给 AgentEngine
+- 添加新 Skill 需要：(1) 在 context.ts 注册 handler (2) 在 agent-engine.ts 添加 tool 定义
+
+### 任务系统（Tasks）
+
+- 状态机：created → assigned → in_progress → review → completed
+- 支持 parent-child 子任务关系
+- 搜索工具 `search_tasks` 支持关键词匹配 ID、title、description
+
+### Agent 工作目录
+
+- 每个 Agent 可配置独立的 `workDir`
+- 默认通过 `AGENT_WORK_DIR_TEMPLATE` 环境变量模板生成
+- 所有 git/bash/codex 操作默认在 agent 的 workDir 下执行
+
+### 数据库
+
+- SQLite（via drizzle-orm），数据文件在 `data/ai-dev-pro.db`
+- Migration 文件在 `packages/core/drizzle/`

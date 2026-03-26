@@ -24,6 +24,7 @@ export class AgentEngine {
     const agentWorkDir = resolveAgentWorkDir(agent.id, agent.workDir);
 
     const agentSops = await this.ctx.sopService.getSopsByAgentId(this.agentId);
+    const projectList = await this.ctx.projectService.list();
 
     const recentMemories = await this.ctx.memoryService.getRelevantContext(this.agentId);
     const conversationHistory = await this.ctx.messageService.getConversationHistory(
@@ -32,7 +33,7 @@ export class AgentEngine {
       10
     );
 
-    const systemPrompt = this.buildSystemPrompt(agent, agentSops, recentMemories, agentWorkDir);
+    const systemPrompt = this.buildSystemPrompt(agent, agentSops, recentMemories, agentWorkDir, projectList);
     const tools = this.buildTools();
 
     const messages: LlmMessage[] = [
@@ -120,7 +121,8 @@ export class AgentEngine {
     agent: any,
     agentSops: any[],
     memories: any[],
-    agentWorkDir: string
+    agentWorkDir: string,
+    projectList?: any[]
   ): string {
     const parts = [
       agent.systemPrompt || `You are ${agent.name}. ${agent.description}`,
@@ -129,8 +131,19 @@ export class AgentEngine {
       `Your default directory for run_bash, git_*, and codex_* tools is:\n\`${agentWorkDir}\`\n`,
       "Do not create files in the ai-dev-pro application source tree unless the user explicitly asks.",
       "",
-      "## Your Capabilities (SOPs):",
     ];
+
+    if (projectList && projectList.length > 0) {
+      parts.push("## Registered Projects:");
+      for (const p of projectList) {
+        parts.push(`- **${p.name}** (id: ${p.id}) repo: ${p.repoUrl || "N/A"} — ${p.description || "No description"}`);
+      }
+      parts.push("");
+      parts.push("When users refer to a project by abbreviation or partial name, match against the list above. Use `get_project_info` or `search_projects` if unsure.");
+      parts.push("");
+    }
+
+    parts.push("## Your Capabilities (SOPs):");
 
     if (agentSops.length > 0) {
       for (const sop of agentSops) {
@@ -211,11 +224,23 @@ export class AgentEngine {
         },
       },
       get_project_info: {
-        description: "Get project information by name",
+        description: "Get project information by name or keyword. Supports fuzzy match — you can pass a partial name, abbreviation, or keyword.",
         parameters: {
           type: "object",
-          properties: { name: { type: "string", description: "Project name" } },
+          properties: { name: { type: "string", description: "Project name or keyword (supports partial/fuzzy match)" } },
           required: ["name"],
+        },
+      },
+      list_projects: {
+        description: "List all registered projects in the system",
+        parameters: { type: "object", properties: {} },
+      },
+      search_projects: {
+        description: "Search projects by keyword (matches name, description, or repo URL)",
+        parameters: {
+          type: "object",
+          properties: { keyword: { type: "string", description: "Search keyword" } },
+          required: ["keyword"],
         },
       },
       create_subtask: {
