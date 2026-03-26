@@ -3,6 +3,11 @@ import type { AppContext } from "../types.js";
 import { AgentEngine } from "../agent-engine.js";
 import { splitMessage } from "../split-message.js";
 
+function handlerLog(agentId: string, ...args: unknown[]) {
+  const ts = new Date().toISOString().slice(11, 23);
+  console.log(`[${ts}][MsgHandler:${agentId}]`, ...args);
+}
+
 export function createMessageHandler(ctx: AppContext, agentId: string) {
   const engine = new AgentEngine(ctx, agentId);
 
@@ -38,18 +43,37 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
     const cleanText = text.replace(/@\w+/g, "").trim();
     if (!cleanText) return;
 
+    const handlerStart = Date.now();
+    handlerLog(agentId, `▶ incoming msg | chat=${chatId} user=${username || userId} | "${cleanText.substring(0, 80)}"`);
+
     try {
       await grammyCtx.react("👀").catch(() => {});
 
-      const reply = await engine.process(cleanText, {
-        chatId,
-        userId,
-        username,
-        isGroup: !isPrivate,
-      });
+      const progressSent = new Set<string>();
+
+      const onProgress = async (progressMsg: string) => {
+        if (progressSent.has(progressMsg)) return;
+        progressSent.add(progressMsg);
+        handlerLog(agentId, `  📤 progress → TG: "${progressMsg.substring(0, 100)}"`);
+
+        try {
+          await grammyCtx.reply(progressMsg, { parse_mode: "Markdown" });
+        } catch {
+          await grammyCtx.reply(progressMsg).catch((e) => {
+            handlerLog(agentId, `  ⚠ progress send failed:`, e);
+          });
+        }
+      };
+
+      const reply = await engine.process(
+        cleanText,
+        { chatId, userId, username, isGroup: !isPrivate },
+        onProgress
+      );
 
       if (reply) {
         const chunks = splitMessage(reply);
+        handlerLog(agentId, `  📤 final reply → TG (${chunks.length} chunk(s), ${reply.length} chars)`);
         for (const chunk of chunks) {
           try {
             await grammyCtx.reply(chunk, { parse_mode: "Markdown" });
@@ -65,8 +89,13 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
           direction: "outgoing",
           content: reply,
         });
+      } else {
+        handlerLog(agentId, `  ⚠ engine returned null reply`);
       }
+
+      handlerLog(agentId, `■ handler done (${((Date.now() - handlerStart) / 1000).toFixed(1)}s)`);
     } catch (err: any) {
+      handlerLog(agentId, `✖ handler FAILED (${((Date.now() - handlerStart) / 1000).toFixed(1)}s):`, err.message || err);
       console.error(`AgentEngine error:`, err);
       await grammyCtx.reply("Sorry, an error occurred while processing your request.");
     }

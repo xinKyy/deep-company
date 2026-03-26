@@ -8,6 +8,55 @@ interface ProcessContext {
   isGroup: boolean;
 }
 
+export type ProgressCallback = (message: string) => Promise<void>;
+
+function agentLog(agentId: string, ...args: unknown[]) {
+  const ts = new Date().toISOString().slice(11, 23);
+  console.log(`[${ts}][Agent:${agentId}]`, ...args);
+}
+
+function agentError(agentId: string, ...args: unknown[]) {
+  const ts = new Date().toISOString().slice(11, 23);
+  console.error(`[${ts}][Agent:${agentId}]`, ...args);
+}
+
+function elapsed(start: number): string {
+  return `${((Date.now() - start) / 1000).toFixed(1)}s`;
+}
+
+const TOOL_PROGRESS_LABELS: Record<string, string> = {
+  git_clone: "正在克隆仓库…",
+  git_pull: "正在拉取最新代码…",
+  git_push: "正在推送代码到远程…",
+  git_commit: "正在提交代码变更…",
+  git_branch: "正在创建/切换分支…",
+  git_merge: "正在合并分支…",
+  git_status: "正在检查仓库状态…",
+  git_log: "正在查看提交历史…",
+  git_diff: "正在查看文件差异…",
+  git_create_pr: "正在创建 Pull Request…",
+  git_trigger_action: "正在触发 GitHub Actions…",
+  run_bash: "正在执行命令…",
+  codex_write_code: "正在编写/修改代码…",
+  codex_explain: "正在分析代码…",
+  jenkins_trigger_job: "正在触发 Jenkins 构建…",
+  jenkins_get_job_status: "正在查询构建状态…",
+  jenkins_list_jobs: "正在获取 Jenkins 任务列表…",
+  create_task: "正在创建任务…",
+  create_subtask: "正在创建子任务…",
+  update_task_status: "正在更新任务状态…",
+  search_tasks: "正在搜索任务…",
+  get_task_detail: "正在获取任务详情…",
+  get_project_info: "正在查询项目信息…",
+  list_projects: "正在获取项目列表…",
+  search_projects: "正在搜索项目…",
+  gog_create_doc: "正在创建 Google 文档…",
+  gog_update_doc: "正在更新 Google 文档…",
+  gog_read_doc: "正在读取 Google 文档…",
+  gog_share_doc: "正在共享 Google 文档…",
+  gog_list_docs: "正在获取文档列表…",
+};
+
 export class AgentEngine {
   private ctx: AppContext;
   private agentId: string;
@@ -17,7 +66,11 @@ export class AgentEngine {
     this.agentId = agentId;
   }
 
-  async process(userMessage: string, pCtx: ProcessContext): Promise<string | null> {
+  async process(
+    userMessage: string,
+    pCtx: ProcessContext,
+    onProgress?: ProgressCallback
+  ): Promise<string | null> {
     const agent = await this.ctx.agentService.getById(this.agentId);
     if (!agent) return "Agent configuration not found.";
 
@@ -50,7 +103,22 @@ export class AgentEngine {
 
     messages.push({ role: "user", content: userMessage });
 
+    const emitProgress = async (msg: string) => {
+      if (onProgress && msg.trim()) {
+        try {
+          await onProgress(msg.trim());
+        } catch (e) {
+          agentError(this.agentId, "progress callback failed:", e);
+        }
+      }
+    };
+
+    const processStart = Date.now();
+    agentLog(this.agentId, `▶ process() start | user="${userMessage.substring(0, 80)}" | chat=${pCtx.chatId} | model=${agent.llmProvider}/${agent.llmModel}`);
+
     try {
+      agentLog(this.agentId, "  → LLM call #0 (initial)");
+      const llm0 = Date.now();
       let result = await this.ctx.llmRouter.complete({
         provider: agent.llmProvider,
         model: agent.llmModel,
@@ -58,12 +126,25 @@ export class AgentEngine {
         tools,
         temperature: 0.7,
       });
+      agentLog(this.agentId, `  ← LLM call #0 done (${elapsed(llm0)}) | content=${result.content ? result.content.length + "chars" : "null"} | toolCalls=${result.toolCalls.length} [${result.toolCalls.map(tc => tc.function.name).join(", ")}]`);
 
       let iterations = 0;
-      const maxIterations = 5;
+      let llmCallCount = 0;
+      const maxIterations = 15;
 
       while (result.toolCalls.length > 0 && iterations < maxIterations) {
-        iterations++;
+        const hasRealTools = result.toolCalls.some((tc) => tc.function.name !== "report_progress");
+        if (hasRealTools) {
+          iterations++;
+        }
+
+        llmCallCount++;
+        agentLog(this.agentId, `  ── iteration ${iterations}/${maxIterations} (llmCall=${llmCallCount}) | ${result.toolCalls.length} tool call(s): [${result.toolCalls.map(tc => tc.function.name).join(", ")}]${hasRealTools ? "" : " (progress-only, not counted)"}`);
+
+        if (result.content) {
+          agentLog(this.agentId, `  📢 LLM intermediate content: "${result.content.substring(0, 120)}"`);
+          await emitProgress(result.content);
+        }
 
         messages.push({
           role: "assistant",
@@ -71,21 +152,58 @@ export class AgentEngine {
           tool_calls: result.toolCalls,
         });
 
-        for (const tc of result.toolCalls) {
-          const params = JSON.parse(tc.function.arguments);
-          const execResult = await this.ctx.skillService.execute(
-            tc.function.name,
-            params,
-            { agentId: this.agentId, agentWorkDir }
-          );
+        const progressLabels = result.toolCalls
+          .filter((tc) => tc.function.name !== "report_progress")
+          .map((tc) => TOOL_PROGRESS_LABELS[tc.function.name])
+          .filter(Boolean);
 
-          messages.push({
-            role: "tool",
-            content: JSON.stringify(execResult),
-            tool_call_id: tc.id,
-          });
+        if (progressLabels.length > 0 && !result.content) {
+          await emitProgress(`⏳ ${progressLabels.join(" ")}`);
         }
 
+        for (const tc of result.toolCalls) {
+          if (tc.function.name === "report_progress") {
+            const params = JSON.parse(tc.function.arguments);
+            agentLog(this.agentId, `  🔔 report_progress: "${params.message}"`);
+            await emitProgress(`💬 ${params.message}`);
+            messages.push({
+              role: "tool",
+              content: JSON.stringify({ ok: true }),
+              tool_call_id: tc.id,
+            });
+            continue;
+          }
+
+          const toolStart = Date.now();
+          agentLog(this.agentId, `  → tool[${tc.function.name}] start | args=${tc.function.arguments.substring(0, 200)}`);
+          try {
+            const params = JSON.parse(tc.function.arguments);
+            const execResult = await this.ctx.skillService.execute(
+              tc.function.name,
+              params,
+              { agentId: this.agentId, agentWorkDir }
+            );
+
+            const resultStr = JSON.stringify(execResult);
+            agentLog(this.agentId, `  ← tool[${tc.function.name}] done (${elapsed(toolStart)}) | result=${resultStr.substring(0, 200)}${resultStr.length > 200 ? "…" : ""}`);
+
+            messages.push({
+              role: "tool",
+              content: resultStr,
+              tool_call_id: tc.id,
+            });
+          } catch (toolErr: any) {
+            agentError(this.agentId, `  ✖ tool[${tc.function.name}] ERROR (${elapsed(toolStart)}):`, toolErr.message || toolErr);
+            messages.push({
+              role: "tool",
+              content: JSON.stringify({ error: toolErr.message || String(toolErr) }),
+              tool_call_id: tc.id,
+            });
+          }
+        }
+
+        agentLog(this.agentId, `  → LLM call #${llmCallCount}`);
+        const llmN = Date.now();
         result = await this.ctx.llmRouter.complete({
           provider: agent.llmProvider,
           model: agent.llmModel,
@@ -93,9 +211,44 @@ export class AgentEngine {
           tools,
           temperature: 0.7,
         });
+        agentLog(this.agentId, `  ← LLM call #${llmCallCount} done (${elapsed(llmN)}) | content=${result.content ? result.content.length + "chars" : "null"} | toolCalls=${result.toolCalls.length} [${result.toolCalls.map(tc => tc.function.name).join(", ")}]`);
       }
 
-      const reply = result.content;
+      let reply = result.content;
+
+      if (iterations >= maxIterations && result.toolCalls.length > 0) {
+        agentLog(this.agentId, `  ⚠ max iterations (${maxIterations}) reached, still had ${result.toolCalls.length} pending tool calls — forcing final summary`);
+
+        messages.push({
+          role: "assistant",
+          content: result.content || "",
+          tool_calls: result.toolCalls,
+        });
+        for (const tc of result.toolCalls) {
+          messages.push({
+            role: "tool",
+            content: JSON.stringify({ error: "Execution skipped: agent reached maximum iteration limit." }),
+            tool_call_id: tc.id,
+          });
+        }
+        messages.push({
+          role: "user",
+          content: "你已经达到了最大执行步数限制。请根据目前已完成的工作，给出一个总结回复：已经做了什么、还有什么没完成、下一步建议是什么。",
+        });
+
+        agentLog(this.agentId, `  → LLM final summary call`);
+        const llmFinal = Date.now();
+        const finalResult = await this.ctx.llmRouter.complete({
+          provider: agent.llmProvider,
+          model: agent.llmModel,
+          messages,
+          temperature: 0.7,
+        });
+        agentLog(this.agentId, `  ← LLM final summary done (${elapsed(llmFinal)}) | content=${finalResult.content ? finalResult.content.length + "chars" : "null"}`);
+        reply = finalResult.content;
+      }
+
+      agentLog(this.agentId, `■ process() done (${elapsed(processStart)}) | iterations=${iterations} | llmCalls=${llmCallCount + 1} | reply=${reply ? reply.length + "chars" : "null"}`);
 
       if (reply) {
         await this.ctx.memoryService.create({
@@ -107,7 +260,8 @@ export class AgentEngine {
 
       return reply;
     } catch (err: any) {
-      console.error(`AgentEngine LLM error:`, err);
+      agentError(this.agentId, `✖ process() FAILED (${elapsed(processStart)}):`, err.message || err);
+      agentError(this.agentId, `  stack:`, err.stack);
 
       if (err.message?.includes("not registered")) {
         return this.handleNoLlmProvider(agent, userMessage, agentSops, pCtx);
@@ -167,6 +321,12 @@ export class AgentEngine {
     }
 
     parts.push(
+      "",
+      "## Progress Reporting:",
+      "- When executing multi-step operations, use the `report_progress` tool to inform the user what you are currently doing BEFORE calling other tools.",
+      "- For example, before pulling code and creating a branch, call report_progress with '正在拉取最新代码并准备创建分支'.",
+      "- Keep progress messages concise and natural — describe the current action and next step.",
+      "- Always report progress before time-consuming operations (git clone, codex, bash commands, etc.).",
       "",
       "## Important Rules:",
       "- When you cannot handle a request with your SOPs, explain what capability is missing and suggest the user configure it.",
@@ -407,13 +567,14 @@ export class AgentEngine {
       },
       // ─── Jenkins Skills ─────────────────────────────────────────────
       jenkins_trigger_job: {
-        description: "Trigger a Jenkins build job",
+        description: "Trigger a Jenkins build job. Use `branch` for the git branch to build, and `buildParams` for any additional Jenkins build parameters.",
         parameters: {
           type: "object",
           properties: {
-            jobUrl: { type: "string", description: "Full Jenkins job URL" },
-            branch: { type: "string", description: "Branch to build" },
-            parameters: { type: "object", description: "Build parameters" },
+            jobUrl: { type: "string", description: "Full Jenkins job URL (e.g. https://jenkins.example.com/job/my-project)" },
+            branch: { type: "string", description: "Git branch to build (e.g. 'feature/xxx', 'develop', 'main')" },
+            branchParamName: { type: "string", description: "Jenkins parameter name for the branch (default: 'GIT_BRANCH'). Only set if the job uses a non-standard name." },
+            buildParams: { type: "object", description: "Additional Jenkins build parameters as key-value pairs (e.g. {\"ENV\": \"staging\", \"DEPLOY\": \"true\"})" },
           },
           required: ["jobUrl"],
         },
@@ -513,7 +674,26 @@ export class AgentEngine {
     };
 
     const registeredHandlers = this.ctx.skillService.listRegisteredHandlers();
-    const tools: LlmTool[] = [];
+    const tools: LlmTool[] = [
+      {
+        type: "function",
+        function: {
+          name: "report_progress",
+          description:
+            "Send a real-time progress update to the user. Use this to communicate what you are currently doing during multi-step operations (e.g. '正在拉取代码并准备创建分支'). Keep messages concise and informative.",
+          parameters: {
+            type: "object",
+            properties: {
+              message: {
+                type: "string",
+                description: "A short, user-facing progress message describing the current step",
+              },
+            },
+            required: ["message"],
+          },
+        },
+      },
+    ];
 
     for (const name of registeredHandlers) {
       const def = toolDefs[name];

@@ -453,14 +453,18 @@ function registerSystemSkills(
   // ─── Jenkins Skills ───────────────────────────────────────────────────────
 
   skillService.registerHandler("jenkins_trigger_job", async (params) => {
-    const { jobUrl, branch, parameters } = params as {
+    const { jobUrl, branch, branchParamName, buildParams } = params as {
       jobUrl: string;
       branch?: string;
-      parameters?: Record<string, string>;
+      branchParamName?: string;
+      buildParams?: Record<string, string>;
     };
     const token = await envVarService.resolve("JENKINS_TOKEN");
-    const allParams: Record<string, string> = { ...parameters };
-    if (branch) allParams.BRANCH = branch;
+    const allParams: Record<string, string> = { ...buildParams };
+    if (branch) {
+      const key = branchParamName || "GIT_BRANCH";
+      allParams[key] = branch;
+    }
 
     let url: string;
     if (Object.keys(allParams).length > 0) {
@@ -469,13 +473,19 @@ function registerSystemSkills(
     } else {
       url = `${jobUrl.replace(/\/$/, "")}/build`;
     }
-    return run("curl", [
+    console.log(`[jenkins_trigger_job] POST ${url} | params=${JSON.stringify(allParams)}`);
+    const result = await run("curl", [
       "-X",
       "POST",
+      "-s",
+      "-w",
+      "\n%{http_code}",
       "-H",
       `Authorization: Basic ${Buffer.from(token).toString("base64")}`,
       url,
     ]);
+    console.log(`[jenkins_trigger_job] response: ${JSON.stringify(result).substring(0, 300)}`);
+    return result;
   });
 
   skillService.registerHandler("jenkins_get_job_status", async (params) => {
