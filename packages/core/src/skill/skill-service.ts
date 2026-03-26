@@ -10,9 +10,16 @@ export interface CreateSkillInput {
   config?: Record<string, unknown>;
 }
 
+export type SkillExecutionContext = {
+  agentId: string;
+  taskId?: string;
+  /** Resolved absolute path for shell, git, codex default cwd */
+  agentWorkDir: string;
+};
+
 export type SkillHandler = (
   params: Record<string, unknown>,
-  context: { agentId: string; taskId?: string }
+  context: SkillExecutionContext
 ) => Promise<unknown>;
 
 export class SkillService {
@@ -30,7 +37,7 @@ export class SkillService {
   async execute(
     name: string,
     params: Record<string, unknown>,
-    context: { agentId: string; taskId?: string }
+    context: SkillExecutionContext
   ): Promise<{ success: boolean; result?: unknown; error?: string }> {
     const handler = this.handlers.get(name);
     if (!handler) {

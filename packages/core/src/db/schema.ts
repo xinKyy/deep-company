@@ -14,6 +14,8 @@ export const agents = sqliteTable("agents", {
   status: text("status", { enum: ["active", "paused", "disabled"] })
     .notNull()
     .default("active"),
+  /** Absolute or template path; null = use AGENT_WORK_DIR_TEMPLATE or /data/agent-pro/{agentId} */
+  workDir: text("work_dir"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

@@ -10,6 +10,7 @@ import { SkillsPage } from "./pages/SkillsPage";
 import { McpsPage } from "./pages/McpsPage";
 import { MessagesPage } from "./pages/MessagesPage";
 import { EnvVarsPage } from "./pages/EnvVarsPage";
+import { LogsPage } from "./pages/LogsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/mcps" element={<McpsPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/env-vars" element={<EnvVarsPage />} />
+            <Route path="/logs" element={<LogsPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Layout>

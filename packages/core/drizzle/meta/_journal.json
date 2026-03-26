@@ -15,6 +15,13 @@
       "when": 1774368959064,
       "tag": "0001_big_falcon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1774370000000,
+      "tag": "0002_work_dir",
+      "breakpoints": true
     }
   ]
 }

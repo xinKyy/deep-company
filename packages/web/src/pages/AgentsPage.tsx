@@ -68,6 +68,14 @@ export function AgentsPage() {
                 </p>
 
                 <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-xs font-mono text-[var(--color-muted)] break-all">
+                    <span className="shrink-0 text-[10px] uppercase tracking-wider text-white/40">工作目录</span>
+                    <span title={agent.workDir || undefined}>
+                      {agent.workDir?.trim()
+                        ? agent.workDir
+                        : `默认 · /data/agent-pro/${agent.id}`}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-2 text-xs font-mono text-[var(--color-muted)]">
                     <Cpu size={12} className="text-[#F7931A]/60" />
                     <span>{agent.llmProvider}/{agent.llmModel}</span>
@@ -139,6 +147,7 @@ function AgentFormModal({
     tgBotToken: initial?.tgBotToken || "",
     tgBotUsername: initial?.tgBotUsername || "",
     status: initial?.status || "active",
+    workDir: initial?.workDir || "",
   });
 
   const set = (k: string) => (e: any) => setForm({ ...form, [k]: e.target.value });
@@ -159,6 +168,18 @@ function AgentFormModal({
         </FormGroup>
         <FormGroup><Label>LLM 模型</Label><Input value={form.llmModel} onChange={set("llmModel")} /></FormGroup>
       </div>
+      <FormGroup>
+        <Label>工作目录（可选）</Label>
+        <Input
+          value={form.workDir}
+          onChange={set("workDir")}
+          placeholder="留空则使用 AGENT_WORK_DIR_TEMPLATE 或 /data/agent-pro/{agentId}"
+          className="font-mono text-sm"
+        />
+        <p className="text-[11px] text-[var(--color-muted)] mt-1.5 leading-relaxed">
+          Agent 执行 run_bash、git、codex 时的默认目录；可填绝对路径，或使用 {"{agentId}"} 占位符。
+        </p>
+      </FormGroup>
       <div className="grid grid-cols-2 gap-4">
         <FormGroup><Label>TG Bot Token</Label><Input value={form.tgBotToken} onChange={set("tgBotToken")} type="password" /></FormGroup>
         <FormGroup><Label>TG Bot 用户名</Label><Input value={form.tgBotUsername} onChange={set("tgBotUsername")} placeholder="不含 @" /></FormGroup>
@@ -174,7 +195,15 @@ function AgentFormModal({
       )}
       <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/5">
         <Button variant="secondary" onClick={onClose}>取消</Button>
-        <Button onClick={() => onSubmit(form)} disabled={!form.name || loading}>
+        <Button
+          onClick={() =>
+            onSubmit({
+              ...form,
+              workDir: form.workDir?.trim() ? form.workDir.trim() : null,
+            })
+          }
+          disabled={!form.name || loading}
+        >
           {loading ? "保存中..." : "保存"}
         </Button>
       </div>

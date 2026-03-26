@@ -11,6 +11,7 @@ import {
   MessageSquare,
   KeyRound,
   Zap,
+  ScrollText,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { to: "/mcps", icon: Server, label: "MCP 服务" },
   { to: "/messages", icon: MessageSquare, label: "消息" },
   { to: "/env-vars", icon: KeyRound, label: "环境变量" },
+  { to: "/logs", icon: ScrollText, label: "运行日志" },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {

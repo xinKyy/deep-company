@@ -10,6 +10,8 @@ export interface CreateAgentInput {
   llmModel?: string;
   tgBotToken?: string;
   tgBotUsername?: string;
+  /** Override default agent workspace (supports `{agentId}`); omit for env template */
+  workDir?: string | null;
 }
 
 export interface UpdateAgentInput {
@@ -21,6 +23,7 @@ export interface UpdateAgentInput {
   tgBotToken?: string;
   tgBotUsername?: string;
   status?: "active" | "paused" | "disabled";
+  workDir?: string | null;
 }
 
 export class AgentService {
@@ -39,6 +42,7 @@ export class AgentService {
         llmModel: input.llmModel || "gpt-4o",
         tgBotToken: input.tgBotToken || null,
         tgBotUsername: input.tgBotUsername || null,
+        workDir: input.workDir ?? null,
       })
       .returning();
     return agent;

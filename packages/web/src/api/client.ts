@@ -1,5 +1,11 @@
 const BASE = "/api";
 
+export type LogEntry = {
+  level: "debug" | "info" | "warn" | "error";
+  time: string;
+  message: string;
+};
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -76,6 +82,17 @@ export const api = {
     list: (params: Record<string, string>) => {
       const qs = new URLSearchParams(params);
       return request<any[]>(`/messages?${qs}`);
+    },
+  },
+  logs: {
+    list: (params?: { level?: string; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.level) qs.set("level", params.level);
+      if (params?.limit != null) qs.set("limit", String(params.limit));
+      const q = qs.toString();
+      return request<{ entries: LogEntry[]; total: number; logFile: string | null }>(
+        `/logs${q ? `?${q}` : ""}`,
+      );
     },
   },
   envVars: {

@@ -1,5 +1,5 @@
 import type { AppContext } from "./types.js";
-import type { LlmMessage, LlmTool } from "@ai-dev-pro/core";
+import { resolveAgentWorkDir, type LlmMessage, type LlmTool } from "@ai-dev-pro/core";
 
 interface ProcessContext {
   chatId: string;
@@ -21,6 +21,8 @@ export class AgentEngine {
     const agent = await this.ctx.agentService.getById(this.agentId);
     if (!agent) return "Agent configuration not found.";
 
+    const agentWorkDir = resolveAgentWorkDir(agent.id, agent.workDir);
+
     const agentSops = await this.ctx.sopService.getSopsByAgentId(this.agentId);
 
     const recentMemories = await this.ctx.memoryService.getRelevantContext(this.agentId);
@@ -30,7 +32,7 @@ export class AgentEngine {
       10
     );
 
-    const systemPrompt = this.buildSystemPrompt(agent, agentSops, recentMemories);
+    const systemPrompt = this.buildSystemPrompt(agent, agentSops, recentMemories, agentWorkDir);
     const tools = this.buildTools();
 
     const messages: LlmMessage[] = [
@@ -73,7 +75,7 @@ export class AgentEngine {
           const execResult = await this.ctx.skillService.execute(
             tc.function.name,
             params,
-            { agentId: this.agentId }
+            { agentId: this.agentId, agentWorkDir }
           );
 
           messages.push({
@@ -117,10 +119,15 @@ export class AgentEngine {
   private buildSystemPrompt(
     agent: any,
     agentSops: any[],
-    memories: any[]
+    memories: any[],
+    agentWorkDir: string
   ): string {
     const parts = [
       agent.systemPrompt || `You are ${agent.name}. ${agent.description}`,
+      "",
+      "## Workspace (filesystem):",
+      `Your default directory for run_bash, git_*, and codex_* tools is:\n\`${agentWorkDir}\`\n`,
+      "Do not create files in the ai-dev-pro application source tree unless the user explicitly asks.",
       "",
       "## Your Capabilities (SOPs):",
     ];
@@ -232,7 +239,7 @@ export class AgentEngine {
           type: "object",
           properties: {
             command: { type: "string", description: "The bash command to execute" },
-            cwd: { type: "string", description: "Working directory (defaults to server cwd)" },
+            cwd: { type: "string", description: "Optional; defaults to this agent's workspace directory" },
             timeout: { type: "number", description: "Timeout in milliseconds (default 120000, max 300000)" },
           },
           required: ["command"],
@@ -256,11 +263,11 @@ export class AgentEngine {
         parameters: {
           type: "object",
           properties: {
-            cwd: { type: "string", description: "Working directory of the repo" },
+            cwd: { type: "string", description: "Repo root (defaults to agent workspace)" },
             remote: { type: "string", description: "Remote name (default: origin)" },
             branch: { type: "string", description: "Branch name" },
           },
-          required: ["cwd"],
+          required: [],
         },
       },
       git_push: {
@@ -268,12 +275,12 @@ export class AgentEngine {
         parameters: {
           type: "object",
           properties: {
-            cwd: { type: "string", description: "Working directory of the repo" },
+            cwd: { type: "string", description: "Repo root (defaults to agent workspace)" },
             remote: { type: "string", description: "Remote name" },
             branch: { type: "string", description: "Branch name" },
             force: { type: "boolean", description: "Force push" },
           },
-          required: ["cwd"],
+          required: [],
         },
       },
       git_commit: {
@@ -281,11 +288,11 @@ export class AgentEngine {
         parameters: {
           type: "object",
           properties: {
-            cwd: { type: "string", description: "Working directory of the repo" },
+            cwd: { type: "string", description: "Repo root (defaults to agent workspace)" },
             message: { type: "string", description: "Commit message" },
             addAll: { type: "boolean", description: "Run git add -A before commit" },
           },
-          required: ["cwd", "message"],
+          required: ["message"],
         },
       },
       git_branch: {
@@ -293,12 +300,12 @@ export class AgentEngine {
         parameters: {
           type: "object",
           properties: {
-            cwd: { type: "string", description: "Working directory of the repo" },
+            cwd: { type: "string", description: "Repo root (defaults to agent workspace)" },
             name: { type: "string", description: "Branch name" },
             checkout: { type: "boolean", description: "Checkout the new branch" },
             from: { type: "string", description: "Base branch to create from" },
           },
-          required: ["cwd", "name"],
+          required: ["name"],
         },
       },
       git_merge: {
@@ -306,20 +313,20 @@ export class AgentEngine {
         parameters: {
           type: "object",
           properties: {
-            cwd: { type: "string", description: "Working directory of the repo" },
+            cwd: { type: "string", description: "Repo root (defaults to agent workspace)" },
             branch: { type: "string", description: "Branch to merge" },
             noFf: { type: "boolean", description: "No fast-forward merge" },
             message: { type: "string", description: "Merge commit message" },
           },
-          required: ["cwd", "branch"],
+          required: ["branch"],
         },
       },
       git_status: {
         description: "Show working tree status (git status --porcelain)",
         parameters: {
           type: "object",
-          properties: { cwd: { type: "string", description: "Working directory of the repo" } },
-          required: ["cwd"],
+          properties: { cwd: { type: "string", description: "Repo root (defaults to agent workspace)" } },
+          required: [],
         },
       },
       git_log: {
@@ -327,10 +334,10 @@ export class AgentEngine {
         parameters: {
           type: "object",
           properties: {
-            cwd: { type: "string", description: "Working directory of the repo" },
+            cwd: { type: "string", description: "Repo root (defaults to agent workspace)" },
             count: { type: "number", description: "Number of commits to show (default 10)" },
           },
-          required: ["cwd"],
+          required: [],
         },
       },
       git_diff: {
@@ -338,10 +345,10 @@ export class AgentEngine {
         parameters: {
           type: "object",
           properties: {
-            cwd: { type: "string", description: "Working directory of the repo" },
+            cwd: { type: "string", description: "Repo root (defaults to agent workspace)" },
             staged: { type: "boolean", description: "Show staged changes only" },
           },
-          required: ["cwd"],
+          required: [],
         },
       },
       git_create_pr: {
@@ -349,14 +356,14 @@ export class AgentEngine {
         parameters: {
           type: "object",
           properties: {
-            cwd: { type: "string", description: "Working directory of the repo" },
+            cwd: { type: "string", description: "Repo root (defaults to agent workspace)" },
             title: { type: "string", description: "PR/MR title" },
             body: { type: "string", description: "PR/MR description" },
             base: { type: "string", description: "Base branch (default: main)" },
             head: { type: "string", description: "Head branch" },
             platform: { type: "string", enum: ["github", "gitlab"], description: "Git platform" },
           },
-          required: ["cwd", "title"],
+          required: ["title"],
         },
       },
       git_trigger_action: {
@@ -412,11 +419,11 @@ export class AgentEngine {
           type: "object",
           properties: {
             prompt: { type: "string", description: "What code to write or modify" },
-            cwd: { type: "string", description: "Working directory (repo root)" },
+            cwd: { type: "string", description: "Repo root (defaults to agent workspace)" },
             model: { type: "string", description: "Model to use" },
             approval: { type: "string", enum: ["suggest", "auto-edit", "full-auto"], description: "Approval mode" },
           },
-          required: ["prompt", "cwd"],
+          required: ["prompt"],
         },
       },
       codex_explain: {
@@ -425,9 +432,9 @@ export class AgentEngine {
           type: "object",
           properties: {
             prompt: { type: "string", description: "What to explain" },
-            cwd: { type: "string", description: "Working directory" },
+            cwd: { type: "string", description: "Working directory (defaults to agent workspace)" },
           },
-          required: ["prompt", "cwd"],
+          required: ["prompt"],
         },
       },
       // ─── Google Docs Skills ─────────────────────────────────────────

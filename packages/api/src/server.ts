@@ -1,4 +1,5 @@
 import "dotenv/config";
+import "./runtime-logger.js";
 import { ProxyAgent, setGlobalDispatcher } from "undici";
 
 const proxyUrl =
@@ -21,6 +22,7 @@ import { mcpRoutes } from "./routes/mcps.js";
 import { memoryRoutes } from "./routes/memories.js";
 import { messageRoutes } from "./routes/messages.js";
 import { envVarRoutes } from "./routes/env-vars.js";
+import { logRoutes } from "./routes/logs.js";
 import { createAppContext, type AppContext } from "./context.js";
 import { BotManager } from "@ai-dev-pro/telegram";
 
@@ -53,6 +55,7 @@ async function main() {
   app.use("/api/memories", memoryRoutes);
   app.use("/api/messages", messageRoutes);
   app.use("/api/env-vars", envVarRoutes);
+  app.use("/api/logs", logRoutes);
 
   const botManager = new BotManager(ctx);
   await botManager.startAll();

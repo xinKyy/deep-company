@@ -11,6 +11,8 @@ import {
   LlmRouter,
   createOpenAIAdapter,
   createAnthropicAdapter,
+  ensureAgentWorkDir,
+  type SkillExecutionContext,
 } from "@ai-dev-pro/core";
 
 export interface AppContext {
@@ -180,22 +182,33 @@ async function run(
   });
 }
 
+function resolveSkillCwd(
+  params: { cwd?: string },
+  ctx: SkillExecutionContext
+): string {
+  const c = params.cwd?.trim();
+  const dir = c || ctx.agentWorkDir;
+  ensureAgentWorkDir(dir);
+  return dir;
+}
+
 function registerSystemSkills(
   skillService: SkillService,
   envVarService: EnvVarService
 ) {
   // ─── Shell / Bash ───────────────────────────────────────────────────────
 
-  skillService.registerHandler("run_bash", async (params) => {
+  skillService.registerHandler("run_bash", async (params, ctx) => {
     const { command, cwd, timeout } = params as {
       command: string;
       cwd?: string;
       timeout?: number;
     };
     const ms = Math.min(timeout || 120_000, 300_000);
+    const workDir = resolveSkillCwd({ cwd }, ctx);
     return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
       const proc = spawn("bash", ["-c", command], {
-        cwd: cwd || process.cwd(),
+        cwd: workDir,
         env: process.env as Record<string, string>,
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -222,12 +235,13 @@ function registerSystemSkills(
 
   // ─── Git Skills ───────────────────────────────────────────────────────────
 
-  skillService.registerHandler("git_clone", async (params) => {
+  skillService.registerHandler("git_clone", async (params, ctx) => {
     const { repoUrl, targetDir, platform } = params as {
       repoUrl: string;
       targetDir?: string;
       platform?: "github" | "gitlab";
     };
+    ensureAgentWorkDir(ctx.agentWorkDir);
     let url = repoUrl;
     if (url.startsWith("https://")) {
       const tokenKey =
@@ -246,107 +260,116 @@ function registerSystemSkills(
     }
     const args = ["clone", url];
     if (targetDir) args.push(targetDir);
-    return run("git", args);
+    return run("git", args, { cwd: ctx.agentWorkDir });
   });
 
-  skillService.registerHandler("git_pull", async (params) => {
+  skillService.registerHandler("git_pull", async (params, ctx) => {
     const { cwd, remote, branch } = params as {
-      cwd: string;
+      cwd?: string;
       remote?: string;
       branch?: string;
     };
+    const dir = resolveSkillCwd({ cwd }, ctx);
     const args = ["pull"];
     if (remote) args.push(remote);
     if (branch) args.push(branch);
-    return run("git", args, { cwd });
+    return run("git", args, { cwd: dir });
   });
 
-  skillService.registerHandler("git_push", async (params) => {
+  skillService.registerHandler("git_push", async (params, ctx) => {
     const { cwd, remote, branch, force } = params as {
-      cwd: string;
+      cwd?: string;
       remote?: string;
       branch?: string;
       force?: boolean;
     };
+    const dir = resolveSkillCwd({ cwd }, ctx);
     const args = ["push"];
     if (force) args.push("--force");
     if (remote) args.push(remote);
     if (branch) args.push(branch);
-    return run("git", args, { cwd });
+    return run("git", args, { cwd: dir });
   });
 
-  skillService.registerHandler("git_commit", async (params) => {
+  skillService.registerHandler("git_commit", async (params, ctx) => {
     const { cwd, message, addAll } = params as {
-      cwd: string;
+      cwd?: string;
       message: string;
       addAll?: boolean;
     };
+    const dir = resolveSkillCwd({ cwd }, ctx);
     if (addAll) {
-      await run("git", ["add", "-A"], { cwd });
+      await run("git", ["add", "-A"], { cwd: dir });
     }
-    return run("git", ["commit", "-m", message], { cwd });
+    return run("git", ["commit", "-m", message], { cwd: dir });
   });
 
-  skillService.registerHandler("git_branch", async (params) => {
+  skillService.registerHandler("git_branch", async (params, ctx) => {
     const { cwd, name, checkout, from } = params as {
-      cwd: string;
+      cwd?: string;
       name: string;
       checkout?: boolean;
       from?: string;
     };
+    const dir = resolveSkillCwd({ cwd }, ctx);
     if (checkout) {
       const args = ["checkout", "-b", name];
       if (from) args.push(from);
-      return run("git", args, { cwd });
+      return run("git", args, { cwd: dir });
     }
     const args = ["branch", name];
     if (from) args.push(from);
-    return run("git", args, { cwd });
+    return run("git", args, { cwd: dir });
   });
 
-  skillService.registerHandler("git_merge", async (params) => {
+  skillService.registerHandler("git_merge", async (params, ctx) => {
     const { cwd, branch, noFf, message } = params as {
-      cwd: string;
+      cwd?: string;
       branch: string;
       noFf?: boolean;
       message?: string;
     };
+    const dir = resolveSkillCwd({ cwd }, ctx);
     const args = ["merge", branch];
     if (noFf) args.push("--no-ff");
     if (message) args.push("-m", message);
-    return run("git", args, { cwd });
+    return run("git", args, { cwd: dir });
   });
 
-  skillService.registerHandler("git_status", async (params) => {
-    const { cwd } = params as { cwd: string };
-    return run("git", ["status", "--porcelain"], { cwd });
+  skillService.registerHandler("git_status", async (params, ctx) => {
+    const { cwd } = params as { cwd?: string };
+    const dir = resolveSkillCwd({ cwd }, ctx);
+    return run("git", ["status", "--porcelain"], { cwd: dir });
   });
 
-  skillService.registerHandler("git_log", async (params) => {
-    const { cwd, count } = params as { cwd: string; count?: number };
+  skillService.registerHandler("git_log", async (params, ctx) => {
+    const { cwd, count } = params as { cwd?: string; count?: number };
+    const dir = resolveSkillCwd({ cwd }, ctx);
     return run(
       "git",
       ["log", `--oneline`, `-n`, String(count || 10)],
-      { cwd }
+      { cwd: dir }
     );
   });
 
-  skillService.registerHandler("git_diff", async (params) => {
-    const { cwd, staged } = params as { cwd: string; staged?: boolean };
+  skillService.registerHandler("git_diff", async (params, ctx) => {
+    const { cwd, staged } = params as { cwd?: string; staged?: boolean };
+    const dir = resolveSkillCwd({ cwd }, ctx);
     const args = ["diff"];
     if (staged) args.push("--cached");
-    return run("git", args, { cwd });
+    return run("git", args, { cwd: dir });
   });
 
-  skillService.registerHandler("git_create_pr", async (params) => {
+  skillService.registerHandler("git_create_pr", async (params, ctx) => {
     const { cwd, title, body, base, head, platform } = params as {
-      cwd: string;
+      cwd?: string;
       title: string;
       body?: string;
       base?: string;
       head?: string;
       platform?: "github" | "gitlab";
     };
+    const dir = resolveSkillCwd({ cwd }, ctx);
     if (platform === "gitlab") {
       const token = await envVarService.resolve("GITLAB_TOKEN");
       const args = [
@@ -360,7 +383,7 @@ function registerSystemSkills(
       const { stdout: remoteUrl } = await run(
         "git",
         ["remote", "get-url", "origin"],
-        { cwd }
+        { cwd: dir }
       );
       const match = remoteUrl.trim().match(/gitlab\.com[:/](.+?)(?:\.git)?$/);
       if (!match) throw new Error("Cannot parse GitLab project from remote URL");
@@ -368,7 +391,7 @@ function registerSystemSkills(
       const payload = JSON.stringify({
         title,
         description: body || "",
-        source_branch: head || (await run("git", ["branch", "--show-current"], { cwd })).stdout.trim(),
+        source_branch: head || (await run("git", ["branch", "--show-current"], { cwd: dir })).stdout.trim(),
         target_branch: base || "main",
       });
       args.push("-d", payload);
@@ -384,7 +407,7 @@ function registerSystemSkills(
     if (base) ghArgs.push("--base", base);
     if (head) ghArgs.push("--head", head);
     return run("gh", ghArgs, {
-      cwd,
+      cwd: dir,
       env: { GH_TOKEN: token },
     });
   });
@@ -472,23 +495,25 @@ function registerSystemSkills(
 
   // ─── Codex CLI Skill ──────────────────────────────────────────────────────
 
-  skillService.registerHandler("codex_write_code", async (params) => {
+  skillService.registerHandler("codex_write_code", async (params, ctx) => {
     const { prompt, cwd, model, approval } = params as {
       prompt: string;
-      cwd: string;
+      cwd?: string;
       model?: string;
       approval?: "suggest" | "auto-edit" | "full-auto";
     };
+    const dir = resolveSkillCwd({ cwd }, ctx);
     const args = [];
     if (model) args.push("--model", model);
     if (approval) args.push(`--approval-mode`, approval);
     args.push(prompt);
-    return run("codex", args, { cwd });
+    return run("codex", args, { cwd: dir });
   });
 
-  skillService.registerHandler("codex_explain", async (params) => {
-    const { prompt, cwd } = params as { prompt: string; cwd: string };
-    return run("codex", [prompt], { cwd });
+  skillService.registerHandler("codex_explain", async (params, ctx) => {
+    const { prompt, cwd } = params as { prompt: string; cwd?: string };
+    const dir = resolveSkillCwd({ cwd }, ctx);
+    return run("codex", [prompt], { cwd: dir });
   });
 
   // ─── Google Docs (gog) Skills ─────────────────────────────────────────────
