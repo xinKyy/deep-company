@@ -25,6 +25,9 @@ importers:
       express:
         specifier: latest
         version: 5.2.1
+      undici:
+        specifier: ^7.24.5
+        version: 7.24.5
     devDependencies:
       '@types/cors':
         specifier: latest
@@ -41,9 +44,6 @@ importers:
       typescript:
         specifier: latest
         version: 6.0.2
-      undici:
-        specifier: ^7.24.5
-        version: 7.24.5
 
   packages/core:
     dependencies:

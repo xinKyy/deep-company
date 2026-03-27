@@ -13,14 +13,14 @@
     "@ai-dev-pro/telegram": "workspace:*",
     "cors": "latest",
     "dotenv": "latest",
-    "express": "latest"
+    "express": "latest",
+    "undici": "^7.24.5"
   },
   "devDependencies": {
     "@types/cors": "latest",
     "@types/express": "latest",
     "tsup": "latest",
     "tsx": "latest",
-    "typescript": "latest",
-    "undici": "^7.24.5"
+    "typescript": "latest"
   }
 }
