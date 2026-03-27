@@ -17,7 +17,12 @@ warn() { echo -e "${YELLOW}[warn]${NC} $*"; }
 err()  { echo -e "${RED}[error]${NC} $*" >&2; exit 1; }
 
 if [ "$(id -u)" -eq 0 ]; then
-  err "请勿使用 root 用户运行此脚本，使用普通用户（需有 sudo 权限）"
+  warn "正在以 root 用户运行，生产环境建议使用普通用户"
+fi
+
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then
+  SUDO="sudo"
 fi
 
 detect_pkg_manager() {
@@ -40,14 +45,14 @@ install_system_deps() {
 
   case "$PKG_MGR" in
     apt)
-      sudo apt-get update
-      sudo apt-get install -y curl git build-essential python3 nginx
+      $SUDO apt-get update
+      $SUDO apt-get install -y curl git build-essential python3 nginx
       ;;
     yum)
-      sudo yum install -y curl git gcc gcc-c++ make python3 nginx
+      $SUDO yum install -y curl git gcc gcc-c++ make python3 nginx
       ;;
     dnf)
-      sudo dnf install -y curl git gcc gcc-c++ make python3 nginx
+      $SUDO dnf install -y curl git gcc gcc-c++ make python3 nginx
       ;;
   esac
 }
@@ -107,7 +112,7 @@ setup_nginx() {
   local PROJECT_DIR
   PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-  sudo tee "$NGINX_CONF" > /dev/null <<'NGINX'
+  $SUDO tee "$NGINX_CONF" > /dev/null <<'NGINX'
 server {
     listen 80;
     server_name _;
@@ -142,11 +147,11 @@ server {
 NGINX
 
   if [ -d /etc/nginx/sites-enabled ]; then
-    sudo ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/ai-dev-pro
-    sudo rm -f /etc/nginx/sites-enabled/default
+    $SUDO ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/ai-dev-pro
+    $SUDO rm -f /etc/nginx/sites-enabled/default
   fi
 
-  sudo nginx -t && sudo systemctl reload nginx
+  $SUDO nginx -t && $SUDO systemctl reload nginx
   log "Nginx 配置完成"
 }
 
