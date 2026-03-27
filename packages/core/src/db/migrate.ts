@@ -7,7 +7,9 @@ import { mkdirSync } from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const dbPath = process.env.DATABASE_URL || resolve(__dirname, "../../../../data/ai-dev-pro.db");
+const dbPath = process.env.DATABASE_URL?.startsWith("/")
+  ? process.env.DATABASE_URL
+  : resolve(process.cwd(), process.env.DATABASE_URL || "data/ai-dev-pro.db");
 
 mkdirSync(dirname(dbPath), { recursive: true });
 

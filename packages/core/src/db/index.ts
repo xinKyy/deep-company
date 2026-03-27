@@ -1,7 +1,6 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
 import { mkdirSync } from "fs";
 import * as schema from "./schema.js";
 
@@ -11,12 +10,9 @@ function resolveDbPath(url?: string): string {
   const raw = url || process.env.DATABASE_URL;
   if (raw) {
     if (raw.startsWith("/")) return raw;
-    const __dir = dirname(fileURLToPath(import.meta.url));
-    const monorepoRoot = resolve(__dir, "../../../..");
-    return resolve(monorepoRoot, raw);
+    return resolve(process.cwd(), raw);
   }
-  const __dir = dirname(fileURLToPath(import.meta.url));
-  return resolve(__dir, "../../../../data/ai-dev-pro.db");
+  return resolve(process.cwd(), "data/ai-dev-pro.db");
 }
 
 function createDb(url?: string) {
