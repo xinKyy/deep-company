@@ -2,9 +2,8 @@ module.exports = {
   apps: [
     {
       name: "ai-dev-pro",
-      cwd: "./packages/api",
-      script: "dist/server.js",
-      node_args: "--env-file=../../.env",
+      script: "packages/api/dist/server.js",
+      node_args: "--env-file=.env",
       instances: 1,
       exec_mode: "fork",
       autorestart: true,
