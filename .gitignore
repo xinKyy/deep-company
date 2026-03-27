@@ -9,3 +9,7 @@ logs/
 # 数据目录（保留目录，忽略内容）
 data/*
 !data/.gitkeep
+
+# 数据目录（保留目录，忽略内容）
+packages/data/*
+!packages/data/.gitkeep
