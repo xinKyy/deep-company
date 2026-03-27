@@ -2,7 +2,8 @@
   "name": "@ai-dev-pro/core",
   "version": "0.1.0",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "db:generate": "drizzle-kit generate",

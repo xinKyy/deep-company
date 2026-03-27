@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter @ai-dev-pro/api dev",
+    "dev": "pnpm --filter @ai-dev-pro/core build && pnpm --filter @ai-dev-pro/telegram build && pnpm --filter @ai-dev-pro/api dev",
     "dev:all": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "db:generate": "pnpm --filter @ai-dev-pro/core db:generate",
