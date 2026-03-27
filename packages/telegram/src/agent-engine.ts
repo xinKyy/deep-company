@@ -58,6 +58,7 @@ const TOOL_PROGRESS_LABELS: Record<string, string> = {
   figma_get_design: "正在获取 Figma 设计数据…",
   figma_download_images: "正在下载 Figma 图片资源…",
   figma_parse_url: "正在解析 Figma URL…",
+  list_agents: "正在获取 Agent 列表…",
   clawhub_search: "正在搜索技能…",
   clawhub_install: "正在安装技能…",
   clawhub_list_installed: "正在获取已安装技能列表…",
@@ -410,6 +411,10 @@ export class AgentEngine {
           properties: { keyword: { type: "string", description: "Search keyword" } },
           required: ["keyword"],
         },
+      },
+      list_agents: {
+        description: "List all agents in the system with their name, description, status, and Telegram username. Use this to discover other agents, check who is available, or find the right agent to delegate a task to.",
+        parameters: { type: "object", properties: {} },
       },
       create_subtask: {
         description: "Create a subtask under an existing task",

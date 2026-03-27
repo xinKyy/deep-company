@@ -186,6 +186,17 @@ function registerBuiltinSkills(
     return projectService.search(keyword);
   });
 
+  skillService.registerHandler("list_agents", async () => {
+    const agents = await agentService.list();
+    return agents.map((a) => ({
+      id: a.id,
+      name: a.name,
+      description: a.description,
+      status: a.status,
+      tgBotUsername: a.tgBotUsername || null,
+    }));
+  });
+
   skillService.registerHandler("create_subtask", async (params, ctx) => {
     const p = params as any;
 
