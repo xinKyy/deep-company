@@ -68,7 +68,7 @@ export class EnvVarService {
     return this.db.select().from(envVars);
   }
 
-  async listByCategory(category: string) {
+  async listByCategory(category: CreateEnvVarInput["category"] & string) {
     return this.db
       .select()
       .from(envVars)
