@@ -1,9 +1,11 @@
 node_modules/
 dist/
-data/*.db
-data/*.db-journal
 .env
 *.log
 logs/
 .DS_Store
+.idea/
+
+# 数据目录（保留目录，忽略内容）
 data/*
+!data/.gitkeep

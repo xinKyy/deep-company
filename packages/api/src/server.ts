@@ -1,6 +1,10 @@
 import { config as dotenvConfig } from "dotenv";
 import { existsSync } from "fs";
 import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 function loadEnv() {
   let dir = process.cwd();
@@ -74,6 +78,18 @@ async function main() {
   app.use("/api/env-vars", envVarRoutes);
   app.use("/api/logs", logRoutes);
   app.use("/api/figma", figmaRoutes);
+
+  // 生产模式：托管前端静态文件（SPA fallback）
+  if (process.env.NODE_ENV === "production") {
+    const webDist = resolve(__dirname, "../../web/dist");
+    if (existsSync(webDist)) {
+      app.use(express.static(webDist));
+      app.get("*", (_req, res) => {
+        res.sendFile(resolve(webDist, "index.html"));
+      });
+      console.log(`Serving static files from ${webDist}`);
+    }
+  }
 
   const botManager = new BotManager(ctx);
   await botManager.startAll();
