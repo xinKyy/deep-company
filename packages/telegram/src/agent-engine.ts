@@ -58,6 +58,11 @@ const TOOL_PROGRESS_LABELS: Record<string, string> = {
   figma_get_design: "正在获取 Figma 设计数据…",
   figma_download_images: "正在下载 Figma 图片资源…",
   figma_parse_url: "正在解析 Figma URL…",
+  clawhub_search: "正在搜索技能…",
+  clawhub_install: "正在安装技能…",
+  clawhub_list_installed: "正在获取已安装技能列表…",
+  clawhub_skill_info: "正在读取技能详情…",
+  clawhub_uninstall: "正在卸载技能…",
 };
 
 export class AgentEngine {
@@ -721,6 +726,63 @@ export class AgentEngine {
             url: { type: "string", description: "Figma URL (figma.com/design/..., figma.com/board/..., etc.)" },
           },
           required: ["url"],
+        },
+      },
+      // ─── ClawHub / Skills Marketplace ──────────────────────────────
+      clawhub_search: {
+        description: "Search for agent skills on ClawHub (clawhub.ai) or skills.sh marketplace. Use when you need a new capability or the user asks to find/install skills.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Search keywords (e.g. 'react testing', 'deploy vercel', 'code review')" },
+            source: { type: "string", enum: ["clawhub", "skills-sh", "both"], description: "Which marketplace to search (default: both)" },
+          },
+          required: ["query"],
+        },
+      },
+      clawhub_install: {
+        description: "Install an agent skill from ClawHub or skills.sh. Skills are SKILL.md bundles that extend agent capabilities with specialized knowledge and workflows.",
+        parameters: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Skill name or package identifier (e.g. 'sonoscli' for ClawHub, 'vercel-labs/agent-skills@react-best-practices' for skills.sh)" },
+            version: { type: "string", description: "Specific version to install (ClawHub only)" },
+            source: { type: "string", enum: ["clawhub", "skills-sh"], description: "Install source (default: clawhub)" },
+            dir: { type: "string", description: "Custom install directory (default: ~/.agents/skills/)" },
+            force: { type: "boolean", description: "Force reinstall if already exists" },
+          },
+          required: ["name"],
+        },
+      },
+      clawhub_list_installed: {
+        description: "List all locally installed agent skills",
+        parameters: {
+          type: "object",
+          properties: {
+            dir: { type: "string", description: "Skills directory to scan (default: ~/.agents/skills/)" },
+          },
+        },
+      },
+      clawhub_skill_info: {
+        description: "Read the full SKILL.md content of an installed skill to understand its capabilities and usage",
+        parameters: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Installed skill name (folder name)" },
+            dir: { type: "string", description: "Skills directory (default: ~/.agents/skills/)" },
+          },
+          required: ["name"],
+        },
+      },
+      clawhub_uninstall: {
+        description: "Remove an installed agent skill",
+        parameters: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Skill name to uninstall" },
+            dir: { type: "string", description: "Skills directory (default: ~/.agents/skills/)" },
+          },
+          required: ["name"],
         },
       },
     };

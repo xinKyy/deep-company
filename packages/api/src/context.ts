@@ -111,6 +111,7 @@ export function createAppContext(): AppContext {
   registerBuiltinSkills(skillService, taskService, projectService, agentService);
   registerSystemSkills(skillService, envVarService);
   registerFigmaSkills(skillService, figmaService);
+  registerClawHubSkills(skillService);
 
   return {
     agentService,
@@ -646,6 +647,132 @@ function registerFigmaSkills(
     const parsed = FigmaService.parseUrl(url);
     if (!parsed) return { error: "Unable to parse Figma URL" };
     return parsed;
+  });
+}
+
+// ─── ClawHub / Skills Marketplace ────────────────────────────────────────────
+
+import { readdir, readFile, rm, stat } from "fs/promises";
+import { join } from "path";
+import { homedir } from "os";
+
+const SKILLS_DIR = process.env.AGENT_SKILLS_DIR || join(homedir(), ".agents", "skills");
+
+function registerClawHubSkills(skillService: SkillService) {
+  skillService.registerHandler("clawhub_search", async (params) => {
+    const { query, source } = params as {
+      query: string;
+      source?: "clawhub" | "skills-sh" | "both";
+    };
+    const src = source || "both";
+    const results: Array<{ source: string; output: string }> = [];
+
+    if (src === "clawhub" || src === "both") {
+      try {
+        const { stdout } = await run("npx", ["-y", "clawhub@latest", "search", query], {});
+        results.push({ source: "clawhub", output: stdout.trim() });
+      } catch (err: any) {
+        results.push({ source: "clawhub", output: `Search failed: ${err.message}` });
+      }
+    }
+
+    if (src === "skills-sh" || src === "both") {
+      try {
+        const { stdout } = await run("npx", ["-y", "skills", "find", query], {});
+        results.push({ source: "skills.sh", output: stdout.trim() });
+      } catch (err: any) {
+        results.push({ source: "skills.sh", output: `Search failed: ${err.message}` });
+      }
+    }
+
+    return results;
+  });
+
+  skillService.registerHandler("clawhub_install", async (params) => {
+    const { name, version, source, dir, force } = params as {
+      name: string;
+      version?: string;
+      source?: "clawhub" | "skills-sh";
+      dir?: string;
+      force?: boolean;
+    };
+    const installDir = dir || SKILLS_DIR;
+    const src = source || "clawhub";
+
+    if (src === "clawhub") {
+      const pkg = version ? `${name}@${version}` : name;
+      const args = ["-y", "clawhub@latest", "install", pkg, "--dir", installDir, "--no-input"];
+      if (force) args.push("--force");
+      const { stdout, stderr } = await run("npx", args, {});
+      return { success: true, output: stdout.trim(), warnings: stderr.trim() || undefined, installDir };
+    }
+
+    const pkg = name.includes("/") ? name : name;
+    const args = ["-y", "skills", "add", pkg, "-g", "-y"];
+    const { stdout, stderr } = await run("npx", args, {});
+    return { success: true, output: stdout.trim(), warnings: stderr.trim() || undefined };
+  });
+
+  skillService.registerHandler("clawhub_list_installed", async (params) => {
+    const { dir } = params as { dir?: string };
+    const skillsDir = dir || SKILLS_DIR;
+
+    try {
+      await stat(skillsDir);
+    } catch {
+      return { skills: [], dir: skillsDir, message: "Skills directory does not exist yet." };
+    }
+
+    const entries = await readdir(skillsDir, { withFileTypes: true });
+    const installed: Array<{
+      name: string;
+      description?: string;
+      hasSkillMd: boolean;
+    }> = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+      const skillMdPath = join(skillsDir, entry.name, "SKILL.md");
+      let description: string | undefined;
+      let hasSkillMd = false;
+      try {
+        const content = await readFile(skillMdPath, "utf-8");
+        hasSkillMd = true;
+        const descMatch = content.match(/^description:\s*(.+)$/m);
+        if (descMatch) description = descMatch[1].trim();
+      } catch { /* no SKILL.md */ }
+      installed.push({ name: entry.name, description, hasSkillMd });
+    }
+
+    return { skills: installed, dir: skillsDir };
+  });
+
+  skillService.registerHandler("clawhub_skill_info", async (params) => {
+    const { name, dir } = params as { name: string; dir?: string };
+    const skillsDir = dir || SKILLS_DIR;
+    const skillMdPath = join(skillsDir, name, "SKILL.md");
+
+    try {
+      const content = await readFile(skillMdPath, "utf-8");
+      return { name, path: skillMdPath, content };
+    } catch (err: any) {
+      return { error: `Skill "${name}" not found: ${err.message}` };
+    }
+  });
+
+  skillService.registerHandler("clawhub_uninstall", async (params) => {
+    const { name, dir } = params as { name: string; dir?: string };
+    const skillsDir = dir || SKILLS_DIR;
+    const skillPath = join(skillsDir, name);
+
+    try {
+      await stat(skillPath);
+    } catch {
+      return { error: `Skill "${name}" not found in ${skillsDir}` };
+    }
+
+    await rm(skillPath, { recursive: true, force: true });
+    return { success: true, removed: skillPath };
   });
 }
 
