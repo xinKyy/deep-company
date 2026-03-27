@@ -8,6 +8,7 @@ import { TasksPage } from "./pages/TasksPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { SkillsPage } from "./pages/SkillsPage";
 import { McpsPage } from "./pages/McpsPage";
+import { FigmaPage } from "./pages/FigmaPage";
 import { MessagesPage } from "./pages/MessagesPage";
 import { EnvVarsPage } from "./pages/EnvVarsPage";
 import { LogsPage } from "./pages/LogsPage";
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/skills" element={<SkillsPage />} />
             <Route path="/mcps" element={<McpsPage />} />
+            <Route path="/figma" element={<FigmaPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/env-vars" element={<EnvVarsPage />} />
             <Route path="/logs" element={<LogsPage />} />

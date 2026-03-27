@@ -1,4 +1,20 @@
-import "dotenv/config";
+import { config as dotenvConfig } from "dotenv";
+import { existsSync } from "fs";
+import { resolve, dirname } from "path";
+
+function loadEnv() {
+  let dir = process.cwd();
+  while (dir !== dirname(dir)) {
+    const envPath = resolve(dir, ".env");
+    if (existsSync(envPath)) {
+      dotenvConfig({ path: envPath });
+      return;
+    }
+    dir = dirname(dir);
+  }
+  dotenvConfig();
+}
+loadEnv();
 import "./runtime-logger.js";
 import { ProxyAgent, setGlobalDispatcher } from "undici";
 
@@ -23,6 +39,7 @@ import { memoryRoutes } from "./routes/memories.js";
 import { messageRoutes } from "./routes/messages.js";
 import { envVarRoutes } from "./routes/env-vars.js";
 import { logRoutes } from "./routes/logs.js";
+import { figmaRoutes } from "./routes/figma.js";
 import { createAppContext, type AppContext } from "./context.js";
 import { BotManager } from "@ai-dev-pro/telegram";
 
@@ -56,6 +73,7 @@ async function main() {
   app.use("/api/messages", messageRoutes);
   app.use("/api/env-vars", envVarRoutes);
   app.use("/api/logs", logRoutes);
+  app.use("/api/figma", figmaRoutes);
 
   const botManager = new BotManager(ctx);
   await botManager.startAll();

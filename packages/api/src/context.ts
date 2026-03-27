@@ -5,6 +5,8 @@ import {
   ProjectService,
   SkillService,
   McpService,
+  McpClientManager,
+  FigmaService,
   MemoryService,
   MessageService,
   EnvVarService,
@@ -22,6 +24,8 @@ export interface AppContext {
   projectService: ProjectService;
   skillService: SkillService;
   mcpService: McpService;
+  mcpClientManager: McpClientManager;
+  figmaService: FigmaService;
   memoryService: MemoryService;
   messageService: MessageService;
   envVarService: EnvVarService;
@@ -35,10 +39,37 @@ export function createAppContext(): AppContext {
   const projectService = new ProjectService();
   const skillService = new SkillService();
   const mcpService = new McpService();
+  const mcpClientManager = new McpClientManager();
   const memoryService = new MemoryService();
   const messageService = new MessageService();
   const envVarService = new EnvVarService();
   const llmRouter = new LlmRouter();
+
+  if (process.env.FIGMA_MCP_URL) {
+    mcpClientManager.register({
+      name: "figma",
+      transport: "http",
+      url: process.env.FIGMA_MCP_URL,
+      headers: {
+        ...(process.env.FIGMA_ACCESS_TOKEN ? { Authorization: `Bearer ${process.env.FIGMA_ACCESS_TOKEN}` } : {}),
+      },
+    });
+    console.log(`[AppContext] Figma MCP registered (HTTP: ${process.env.FIGMA_MCP_URL})`);
+  } else if (process.env.FIGMA_MCP_COMMAND) {
+    const figmaToken = process.env.FIGMA_ACCESS_TOKEN || "";
+    mcpClientManager.register({
+      name: "figma",
+      transport: "stdio",
+      command: process.env.FIGMA_MCP_COMMAND,
+      args: process.env.FIGMA_MCP_ARGS ? process.env.FIGMA_MCP_ARGS.split(" ") : [],
+      env: {
+        ...(figmaToken ? { FIGMA_ACCESS_TOKEN: figmaToken, FIGMA_API_KEY: figmaToken } : {}),
+      },
+    });
+    console.log("[AppContext] Figma MCP registered (stdio)");
+  }
+
+  const figmaService = new FigmaService(mcpClientManager);
 
   if (process.env.OPENAI_API_KEY) {
     llmRouter.registerProvider(
@@ -79,6 +110,7 @@ export function createAppContext(): AppContext {
 
   registerBuiltinSkills(skillService, taskService, projectService, agentService);
   registerSystemSkills(skillService, envVarService);
+  registerFigmaSkills(skillService, figmaService);
 
   return {
     agentService,
@@ -87,6 +119,8 @@ export function createAppContext(): AppContext {
     projectService,
     skillService,
     mcpService,
+    mcpClientManager,
+    figmaService,
     memoryService,
     messageService,
     envVarService,
@@ -581,6 +615,37 @@ function registerSystemSkills(
 
   skillService.registerHandler("gog_list_docs", async () => {
     return run("gog", ["list", "docs"]);
+  });
+}
+
+function registerFigmaSkills(
+  skillService: SkillService,
+  figmaService: FigmaService
+) {
+  skillService.registerHandler("figma_get_design", async (params) => {
+    const { fileKey, nodeId, depth } = params as {
+      fileKey: string;
+      nodeId?: string;
+      depth?: number;
+    };
+    return { data: await figmaService.getDesignData({ fileKey, nodeId, depth }) };
+  });
+
+  skillService.registerHandler("figma_download_images", async (params, ctx) => {
+    const { fileKey, nodes, localPath, pngScale } = params as {
+      fileKey: string;
+      nodes: Array<{ nodeId: string; fileName: string; imageRef?: string; gifRef?: string }>;
+      localPath: string;
+      pngScale?: number;
+    };
+    return { result: await figmaService.downloadImages({ fileKey, nodes, localPath, pngScale }) };
+  });
+
+  skillService.registerHandler("figma_parse_url", async (params) => {
+    const { url } = params as { url: string };
+    const parsed = FigmaService.parseUrl(url);
+    if (!parsed) return { error: "Unable to parse Figma URL" };
+    return parsed;
   });
 }
 

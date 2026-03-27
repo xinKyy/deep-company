@@ -9,13 +9,14 @@
     "db:migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.28.0",
     "better-sqlite3": "latest",
     "drizzle-orm": "latest",
     "nanoid": "latest"
   },
   "devDependencies": {
-    "drizzle-kit": "latest",
     "@types/better-sqlite3": "latest",
+    "drizzle-kit": "latest",
     "tsup": "latest",
     "tsx": "latest",
     "typescript": "latest"

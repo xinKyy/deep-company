@@ -55,6 +55,9 @@ const TOOL_PROGRESS_LABELS: Record<string, string> = {
   gog_read_doc: "正在读取 Google 文档…",
   gog_share_doc: "正在共享 Google 文档…",
   gog_list_docs: "正在获取文档列表…",
+  figma_get_design: "正在获取 Figma 设计数据…",
+  figma_download_images: "正在下载 Figma 图片资源…",
+  figma_parse_url: "正在解析 Figma URL…",
 };
 
 export class AgentEngine {
@@ -670,6 +673,55 @@ export class AgentEngine {
       gog_list_docs: {
         description: "List all Google Docs",
         parameters: { type: "object", properties: {} },
+      },
+      // ─── Figma Skills ──────────────────────────────────────────────
+      figma_get_design: {
+        description: "Get comprehensive Figma design data including layout, content, visuals, and component info. Use fileKey from a Figma URL (figma.com/design/<fileKey>/...) and optionally a nodeId for a specific frame.",
+        parameters: {
+          type: "object",
+          properties: {
+            fileKey: { type: "string", description: "Figma file key (from URL: figma.com/design/<fileKey>/...)" },
+            nodeId: { type: "string", description: "Node ID (format '1234:5678', from URL param node-id)" },
+            depth: { type: "number", description: "Tree traversal depth (only if user explicitly requests)" },
+          },
+          required: ["fileKey"],
+        },
+      },
+      figma_download_images: {
+        description: "Download SVG/PNG/GIF images from Figma nodes to a local directory",
+        parameters: {
+          type: "object",
+          properties: {
+            fileKey: { type: "string", description: "Figma file key" },
+            nodes: {
+              type: "array",
+              description: "Image nodes to download",
+              items: {
+                type: "object",
+                properties: {
+                  nodeId: { type: "string", description: "Figma node ID (e.g. '1234:5678')" },
+                  fileName: { type: "string", description: "Local filename with extension (e.g. 'icon.svg', 'hero.png')" },
+                  imageRef: { type: "string", description: "Image ref from Figma data (for raster images)" },
+                  gifRef: { type: "string", description: "GIF ref from Figma data (for animated GIFs)" },
+                },
+                required: ["nodeId", "fileName"],
+              },
+            },
+            localPath: { type: "string", description: "Directory to save images (e.g. 'public/images')" },
+            pngScale: { type: "number", description: "PNG export scale (default 2)" },
+          },
+          required: ["fileKey", "nodes", "localPath"],
+        },
+      },
+      figma_parse_url: {
+        description: "Parse a Figma URL to extract fileKey and nodeId for use with other Figma tools",
+        parameters: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "Figma URL (figma.com/design/..., figma.com/board/..., etc.)" },
+          },
+          required: ["url"],
+        },
       },
     };
 

@@ -8,10 +8,15 @@ import * as schema from "./schema.js";
 let _db: ReturnType<typeof createDb> | null = null;
 
 function resolveDbPath(url?: string): string {
-  if (url) return url;
-  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  return resolve(__dirname, "../../../../data/ai-dev-pro.db");
+  const raw = url || process.env.DATABASE_URL;
+  if (raw) {
+    if (raw.startsWith("/")) return raw;
+    const __dir = dirname(fileURLToPath(import.meta.url));
+    const monorepoRoot = resolve(__dir, "../../../..");
+    return resolve(monorepoRoot, raw);
+  }
+  const __dir = dirname(fileURLToPath(import.meta.url));
+  return resolve(__dir, "../../../../data/ai-dev-pro.db");
 }
 
 function createDb(url?: string) {

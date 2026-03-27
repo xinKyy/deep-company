@@ -5,6 +5,8 @@ import type {
   ProjectService,
   SkillService,
   McpService,
+  McpClientManager,
+  FigmaService,
   MemoryService,
   MessageService,
   LlmRouter,
@@ -17,6 +19,8 @@ export interface AppContext {
   projectService: ProjectService;
   skillService: SkillService;
   mcpService: McpService;
+  mcpClientManager: McpClientManager;
+  figmaService: FigmaService;
   memoryService: MemoryService;
   messageService: MessageService;
   llmRouter: LlmRouter;

@@ -95,6 +95,16 @@ export const api = {
       );
     },
   },
+  figma: {
+    status: () => request<{ connected: boolean; tools?: string[]; reason?: string }>("/figma/status"),
+    getDesignData: (data: { fileKey: string; nodeId?: string; depth?: number }) =>
+      request<{ data: string }>("/figma/design-data", { method: "POST", body: JSON.stringify(data) }),
+    downloadImages: (data: { fileKey: string; nodes: any[]; localPath: string; pngScale?: number }) =>
+      request<{ result: string }>("/figma/download-images", { method: "POST", body: JSON.stringify(data) }),
+    parseUrl: (url: string) =>
+      request<{ fileKey: string; nodeId?: string }>("/figma/parse-url", { method: "POST", body: JSON.stringify({ url }) }),
+    tools: () => request<Array<{ name: string; description?: string }>>("/figma/tools"),
+  },
   envVars: {
     list: () => request<any[]>("/env-vars"),
     create: (data: any) =>
