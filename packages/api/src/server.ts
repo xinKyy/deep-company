@@ -84,7 +84,7 @@ async function main() {
     const webDist = resolve(__dirname, "../../web/dist");
     if (existsSync(webDist)) {
       app.use(express.static(webDist));
-      app.get("*", (_req, res) => {
+      app.get("/{*splat}", (_req, res) => {
         res.sendFile(resolve(webDist, "index.html"));
       });
       console.log(`Serving static files from ${webDist}`);
