@@ -56,6 +56,9 @@ importers:
       better-sqlite3:
         specifier: latest
         version: 12.8.0
+      dotenv:
+        specifier: ^17.3.1
+        version: 17.3.1
       drizzle-orm:
         specifier: latest
         version: 0.45.1(@types/better-sqlite3@7.6.13)(better-sqlite3@12.8.0)

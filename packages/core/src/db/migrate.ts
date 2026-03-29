@@ -1,3 +1,4 @@
+import { config as dotenvConfig } from "dotenv";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
@@ -17,6 +18,12 @@ function findProjectRoot(): string {
 }
 
 const root = findProjectRoot();
+
+const envPath = resolve(root, ".env");
+if (existsSync(envPath)) {
+  dotenvConfig({ path: envPath });
+}
+
 const dbPath = process.env.DATABASE_URL?.startsWith("/")
   ? process.env.DATABASE_URL
   : resolve(root, process.env.DATABASE_URL || "data/ai-dev-pro.db");
@@ -29,7 +36,7 @@ sqlite.pragma("foreign_keys = ON");
 
 const db = drizzle(sqlite);
 
-console.log("Running migrations...");
+console.log(`Running migrations on: ${dbPath}`);
 migrate(db, { migrationsFolder: resolve(__dirname, "../../drizzle") });
 console.log("Migrations complete.");
 

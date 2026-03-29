@@ -12,6 +12,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0",
     "better-sqlite3": "latest",
+    "dotenv": "^17.3.1",
     "drizzle-orm": "latest",
     "nanoid": "latest"
   },
