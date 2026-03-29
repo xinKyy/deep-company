@@ -85,6 +85,9 @@ const TOOL_PROGRESS_LABELS: Record<string, string> = {
   pencil_get_variables: "正在获取设计变量…",
   pencil_set_variables: "正在更新设计变量…",
   send_tg_photo: "正在发送图片到 Telegram…",
+  design_html_screenshot: "正在生成 HTML 设计截图…",
+  design_url_screenshot: "正在截取网页截图…",
+  design_component_preview: "正在预览 UI 组件…",
 };
 
 export class AgentEngine {
@@ -1026,7 +1029,7 @@ export class AgentEngine {
       },
       // ─── Telegram Photo ──────────────────────────────────────────
       send_tg_photo: {
-        description: "Send an image file to a Telegram chat. Use after pencil_export_nodes or pencil_get_screenshot to share design screenshots. If chatId is omitted, sends to current chat.",
+        description: "Send an image file to a Telegram chat. Use after design tools (design_html_screenshot, pencil_export_nodes, etc.) to share screenshots. If chatId is omitted, sends to current chat.",
         parameters: {
           type: "object",
           properties: {
@@ -1035,6 +1038,51 @@ export class AgentEngine {
             chatId: { type: "string", description: "Target Telegram chat ID (optional, defaults to current chat)" },
           },
           required: ["filePath"],
+        },
+      },
+      // ─── Puppeteer Design Skills (available when Pencil is not configured) ──
+      design_html_screenshot: {
+        description: "Render HTML code to a PNG screenshot. Write full HTML (with CSS, Tailwind, etc.) and get a high-quality image. Use send_tg_photo to share the result. Great for creating UI mockups, dashboards, landing pages, and any visual design.",
+        parameters: {
+          type: "object",
+          properties: {
+            html: { type: "string", description: "Complete HTML code to render (can include <style>, Tailwind classes, inline styles, etc.)" },
+            width: { type: "number", description: "Viewport width in pixels (default 1280)" },
+            height: { type: "number", description: "Viewport height in pixels (default 800)" },
+            outputPath: { type: "string", description: "Custom output file path (optional)" },
+            deviceScaleFactor: { type: "number", description: "Pixel density (default 2 for retina)" },
+          },
+          required: ["html"],
+        },
+      },
+      design_url_screenshot: {
+        description: "Take a screenshot of a live webpage by URL. Optionally capture only a specific CSS selector.",
+        parameters: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "URL to screenshot" },
+            width: { type: "number", description: "Viewport width (default 1280)" },
+            height: { type: "number", description: "Viewport height (default 800)" },
+            selector: { type: "string", description: "CSS selector to capture specific element (optional)" },
+            outputPath: { type: "string", description: "Custom output path (optional)" },
+            deviceScaleFactor: { type: "number", description: "Pixel density (default 2)" },
+          },
+          required: ["url"],
+        },
+      },
+      design_component_preview: {
+        description: "Preview a UI component as an image. Supports raw HTML, Tailwind HTML, or React JSX. The component is rendered with proper styling and captured as a screenshot. Perfect for quickly prototyping and sharing UI designs.",
+        parameters: {
+          type: "object",
+          properties: {
+            componentCode: { type: "string", description: "Component code (HTML, Tailwind HTML, or React JSX)" },
+            framework: { type: "string", enum: ["html", "tailwind", "react"], description: "Framework: 'html' (plain), 'tailwind' (auto-loads Tailwind CSS), 'react' (auto-loads React+Babel+Tailwind)" },
+            width: { type: "number", description: "Viewport width (default 1280)" },
+            height: { type: "number", description: "Viewport height (default 800)" },
+            theme: { type: "string", enum: ["light", "dark"], description: "Background theme (default light)" },
+            outputPath: { type: "string", description: "Custom output path (optional)" },
+          },
+          required: ["componentCode"],
         },
       },
     };

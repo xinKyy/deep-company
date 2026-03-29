@@ -136,7 +136,13 @@ export function createAppContext(): AppContext {
   registerFigmaSkills(skillService, figmaService);
   if (larkService) registerLarkSkills(skillService, larkService);
   registerClawHubSkills(skillService);
-  if (mcpClientManager.has("pencil")) registerPencilSkills(skillService, mcpClientManager);
+  if (mcpClientManager.has("pencil")) {
+    registerPencilSkills(skillService, mcpClientManager);
+    console.log("[AppContext] Pencil design skills registered");
+  } else {
+    registerPuppeteerDesignSkills(skillService);
+    console.log("[AppContext] Puppeteer design skills registered (Pencil not configured)");
+  }
   registerTelegramSkills(skillService, agentService);
 
   return {
@@ -879,6 +885,200 @@ function registerClawHubSkills(skillService: SkillService) {
 
     await rm(skillPath, { recursive: true, force: true });
     return { success: true, removed: skillPath };
+  });
+}
+
+// ─── Puppeteer Design Skills (fallback when Pencil is not available) ──────────
+
+import puppeteer from "puppeteer-core";
+
+async function findChromePath(): Promise<string> {
+  const candidates = [
+    process.env.CHROME_PATH,
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+    "/snap/bin/chromium",
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+  ].filter(Boolean) as string[];
+
+  for (const p of candidates) {
+    try {
+      await stat(p);
+      return p;
+    } catch { /* not found */ }
+  }
+  throw new Error(
+    "Chrome/Chromium not found. Set CHROME_PATH env var or install: apt install chromium-browser"
+  );
+}
+
+function registerPuppeteerDesignSkills(skillService: SkillService) {
+  skillService.registerHandler("design_html_screenshot", async (params, ctx) => {
+    const { html, width, height, outputPath, deviceScaleFactor } = params as {
+      html: string;
+      width?: number;
+      height?: number;
+      outputPath?: string;
+      deviceScaleFactor?: number;
+    };
+
+    const chromePath = await findChromePath();
+    const browser = await puppeteer.launch({
+      executablePath: chromePath,
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
+    });
+
+    try {
+      const page = await browser.newPage();
+      await page.setViewport({
+        width: width || 1280,
+        height: height || 800,
+        deviceScaleFactor: deviceScaleFactor || 2,
+      });
+
+      await page.setContent(html, { waitUntil: "networkidle0", timeout: 15000 });
+
+      const tmpDir = join(process.cwd(), "data", "design-exports");
+      await mkdir(tmpDir, { recursive: true });
+      const filePath = outputPath || join(tmpDir, `design-${Date.now()}.png`);
+
+      await page.screenshot({ path: filePath, fullPage: true });
+      return { imagePath: filePath, width: width || 1280, height: height || 800 };
+    } finally {
+      await browser.close();
+    }
+  });
+
+  skillService.registerHandler("design_url_screenshot", async (params, ctx) => {
+    const { url, width, height, outputPath, selector, deviceScaleFactor } = params as {
+      url: string;
+      width?: number;
+      height?: number;
+      outputPath?: string;
+      selector?: string;
+      deviceScaleFactor?: number;
+    };
+
+    const chromePath = await findChromePath();
+    const browser = await puppeteer.launch({
+      executablePath: chromePath,
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
+    });
+
+    try {
+      const page = await browser.newPage();
+      await page.setViewport({
+        width: width || 1280,
+        height: height || 800,
+        deviceScaleFactor: deviceScaleFactor || 2,
+      });
+
+      await page.goto(url, { waitUntil: "networkidle0", timeout: 30000 });
+
+      const tmpDir = join(process.cwd(), "data", "design-exports");
+      await mkdir(tmpDir, { recursive: true });
+      const filePath = outputPath || join(tmpDir, `screenshot-${Date.now()}.png`);
+
+      if (selector) {
+        const el = await page.$(selector);
+        if (el) {
+          await el.screenshot({ path: filePath });
+        } else {
+          await page.screenshot({ path: filePath, fullPage: true });
+        }
+      } else {
+        await page.screenshot({ path: filePath, fullPage: true });
+      }
+
+      return { imagePath: filePath, width: width || 1280, height: height || 800 };
+    } finally {
+      await browser.close();
+    }
+  });
+
+  skillService.registerHandler("design_component_preview", async (params, ctx) => {
+    const {
+      componentCode,
+      framework,
+      width,
+      height,
+      outputPath,
+      theme,
+    } = params as {
+      componentCode: string;
+      framework?: "html" | "react" | "tailwind";
+      width?: number;
+      height?: number;
+      outputPath?: string;
+      theme?: "light" | "dark";
+    };
+
+    const bgColor = theme === "dark" ? "#1a1a2e" : "#ffffff";
+    const textColor = theme === "dark" ? "#e0e0e0" : "#1a1a1a";
+
+    let fullHtml: string;
+    if (framework === "react") {
+      fullHtml = `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{margin:0;padding:24px;background:${bgColor};color:${textColor};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}</style>
+</head><body>
+<div id="root"></div>
+<script type="text/babel">${componentCode}
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));</script>
+</body></html>`;
+    } else if (framework === "tailwind") {
+      fullHtml = `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{margin:0;padding:24px;background:${bgColor};color:${textColor};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}</style>
+</head><body>${componentCode}</body></html>`;
+    } else {
+      fullHtml = componentCode.includes("<html") ? componentCode :
+        `<!DOCTYPE html><html><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0;padding:24px;background:${bgColor};color:${textColor};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}</style>
+</head><body>${componentCode}</body></html>`;
+    }
+
+    const chromePath = await findChromePath();
+    const browser = await puppeteer.launch({
+      executablePath: chromePath,
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
+    });
+
+    try {
+      const page = await browser.newPage();
+      await page.setViewport({
+        width: width || 1280,
+        height: height || 800,
+        deviceScaleFactor: 2,
+      });
+
+      await page.setContent(fullHtml, { waitUntil: "networkidle0", timeout: 20000 });
+
+      const tmpDir = join(process.cwd(), "data", "design-exports");
+      await mkdir(tmpDir, { recursive: true });
+      const filePath = outputPath || join(tmpDir, `component-${Date.now()}.png`);
+
+      await page.screenshot({ path: filePath, fullPage: true });
+      return { imagePath: filePath, width: width || 1280, height: height || 800 };
+    } finally {
+      await browser.close();
+    }
   });
 }
 

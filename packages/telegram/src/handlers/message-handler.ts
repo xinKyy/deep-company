@@ -28,6 +28,25 @@ async function downloadTgPhoto(grammyCtx: GrammyContext, fileId: string): Promis
   }
 }
 
+const IMAGE_MIME_TYPES = new Set([
+  "image/jpeg", "image/png", "image/gif", "image/webp",
+  "image/bmp", "image/tiff", "image/svg+xml",
+]);
+
+function detectImageFileId(msg: any): string | null {
+  if (msg.photo && msg.photo.length > 0) {
+    return msg.photo[msg.photo.length - 1].file_id;
+  }
+  if (msg.document) {
+    const mime = msg.document.mime_type || "";
+    const name = (msg.document.file_name || "").toLowerCase();
+    if (IMAGE_MIME_TYPES.has(mime) || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(name)) {
+      return msg.document.file_id;
+    }
+  }
+  return null;
+}
+
 export function createMessageHandler(ctx: AppContext, agentId: string) {
   const engine = new AgentEngine(ctx, agentId);
 
@@ -40,7 +59,8 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
     const userId = msg.from ? String(msg.from.id) : undefined;
     const username = msg.from?.username || undefined;
     const text = msg.text || msg.caption || "";
-    const hasPhoto = !!(msg.photo && msg.photo.length > 0);
+    const imageFileId = detectImageFileId(msg);
+    const hasImage = !!imageFileId;
 
     await ctx.messageService.record({
       agentId,
@@ -50,30 +70,30 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
       tgUsername: username,
       direction: "incoming",
       content: text,
-      messageType: msg.text ? "text" : msg.photo ? "photo" : msg.document ? "document" : "other",
+      messageType: msg.text ? "text" : hasImage ? "photo" : msg.document ? "document" : "other",
       rawData: JSON.stringify(msg),
     });
 
-    if (!text.trim() && !hasPhoto) return;
+    if (!text.trim() && !hasImage) return;
 
     const isPrivate = msg.chat.type === "private";
     const isMentioned = text.includes(`@${await getBotUsername(grammyCtx)}`);
 
-    if (!isPrivate && !isMentioned && !hasPhoto) return;
+    if (!isPrivate && !isMentioned && !hasImage) return;
 
     const cleanText = text.replace(/@\w+/g, "").trim();
-    if (!cleanText && !hasPhoto) return;
+    if (!cleanText && !hasImage) return;
 
     const imageUrls: string[] = [];
-    if (hasPhoto) {
-      const photo = msg.photo![msg.photo!.length - 1];
-      handlerLog(agentId, `  📷 downloading photo file_id=${photo.file_id}`);
-      const dataUrl = await downloadTgPhoto(grammyCtx, photo.file_id);
+    if (imageFileId) {
+      handlerLog(agentId, `  📷 downloading image file_id=${imageFileId}`);
+      const dataUrl = await downloadTgPhoto(grammyCtx, imageFileId);
       if (dataUrl) imageUrls.push(dataUrl);
+      else handlerLog(agentId, `  ⚠ image download failed`);
     }
 
     const handlerStart = Date.now();
-    const userText = cleanText || (hasPhoto ? "请分析这张图片" : "");
+    const userText = cleanText || (hasImage ? "请分析这张图片" : "");
     handlerLog(agentId, `▶ incoming msg | chat=${chatId} user=${username || userId} | "${userText.substring(0, 80)}" | photos=${imageUrls.length}`);
 
     try {

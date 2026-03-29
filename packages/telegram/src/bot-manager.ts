@@ -54,15 +54,44 @@ export class BotManager {
     });
 
     bot.catch((err) => {
-      console.error(`Bot crash (agent=${agentId}):`, err);
+      console.error(`[BotManager] Bot ${agentId} middleware error:`, err);
     });
 
-    bot.start({
-      onStart: (botInfo) => {
-        console.log(`[BotManager] polling started for @${botInfo.username} (agent=${agentId})`);
-      },
-    });
     this.bots.set(agentId, { agentId, bot, running: true });
+
+    // Clear any stale long-poll before starting, then launch with retry
+    (async () => {
+      try {
+        await bot.api.deleteWebhook();
+        await bot.api.raw.getUpdates({ offset: -1, limit: 1, timeout: 0 });
+      } catch { /* ignore cleanup errors */ }
+
+      const launchPolling = (attempt = 1, maxAttempts = 4) => {
+        const pollPromise = bot.start({
+          onStart: (botInfo) => {
+            console.log(`[BotManager] polling started for @${botInfo.username} (agent=${agentId})`);
+          },
+        });
+
+        pollPromise.catch(async (err: any) => {
+          const is409 = err?.error_code === 409 || String(err?.description || err?.message || "").includes("409");
+          if (is409 && attempt < maxAttempts) {
+            const delay = 15000 * attempt;
+            console.warn(`[BotManager] Bot ${agentId} polling conflict (attempt ${attempt}/${maxAttempts}), retrying in ${delay / 1000}s...`);
+            try { await bot.stop(); } catch { /* ok */ }
+            await new Promise((r) => setTimeout(r, delay));
+            launchPolling(attempt + 1, maxAttempts);
+          } else {
+            console.error(`[BotManager] Bot ${agentId} polling stopped (attempt ${attempt}):`, err.message || err);
+            const managed = this.bots.get(agentId);
+            if (managed) managed.running = false;
+          }
+        });
+      };
+
+      launchPolling();
+    })();
+
     console.log(`Bot started for agent: ${agentId}`);
   }
 
