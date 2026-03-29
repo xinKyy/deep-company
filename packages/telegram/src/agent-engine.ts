@@ -64,6 +64,13 @@ const TOOL_PROGRESS_LABELS: Record<string, string> = {
   clawhub_list_installed: "正在获取已安装技能列表…",
   clawhub_skill_info: "正在读取技能详情…",
   clawhub_uninstall: "正在卸载技能…",
+  lark_read_doc: "正在读取飞书文档…",
+  lark_create_doc: "正在创建飞书文档…",
+  lark_get_wiki_node: "正在获取飞书 Wiki 节点信息…",
+  lark_read_wiki: "正在读取飞书 Wiki 页面…",
+  lark_search_wiki: "正在搜索飞书 Wiki…",
+  lark_create_wiki_node: "正在创建飞书 Wiki 页面…",
+  lark_parse_url: "正在解析飞书链接…",
 };
 
 export class AgentEngine {
@@ -788,6 +795,83 @@ export class AgentEngine {
             dir: { type: "string", description: "Skills directory (default: ~/.agents/skills/)" },
           },
           required: ["name"],
+        },
+      },
+      // ─── Lark / 飞书 Skills ───────────────────────────────────────
+      lark_read_doc: {
+        description: "Read a Lark/Feishu document's text content by document ID. You can get the document ID from a Lark URL or from wiki node info.",
+        parameters: {
+          type: "object",
+          properties: {
+            documentId: { type: "string", description: "Lark document ID (e.g. 'JDYSdxxxxxx')" },
+          },
+          required: ["documentId"],
+        },
+      },
+      lark_create_doc: {
+        description: "Create a new Lark/Feishu document. Supports simple markdown formatting (# headings, plain text paragraphs). Returns the new document ID.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Document title" },
+            content: { type: "string", description: "Document content (supports simple markdown: # headings, plain text)" },
+            folderToken: { type: "string", description: "Folder token to create the document in (optional)" },
+          },
+          required: ["title"],
+        },
+      },
+      lark_get_wiki_node: {
+        description: "Get Lark/Feishu Wiki node info (title, space, type, timestamps, etc.) by node token",
+        parameters: {
+          type: "object",
+          properties: {
+            token: { type: "string", description: "Wiki node token" },
+          },
+          required: ["token"],
+        },
+      },
+      lark_read_wiki: {
+        description: "Read a Lark/Feishu Wiki page's text content by node token. Also returns node metadata.",
+        parameters: {
+          type: "object",
+          properties: {
+            nodeToken: { type: "string", description: "Wiki node token (from URL or search results)" },
+          },
+          required: ["nodeToken"],
+        },
+      },
+      lark_search_wiki: {
+        description: "Search Lark/Feishu Wiki pages by keyword. Optionally scope to a specific wiki space.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Search keyword" },
+            spaceId: { type: "string", description: "Wiki space ID to search within (optional, searches all accessible spaces if omitted)" },
+          },
+          required: ["query"],
+        },
+      },
+      lark_create_wiki_node: {
+        description: "Create a new page in a Lark/Feishu Wiki space. Supports simple markdown content.",
+        parameters: {
+          type: "object",
+          properties: {
+            spaceId: { type: "string", description: "Wiki space ID" },
+            parentNodeToken: { type: "string", description: "Parent node token (optional; creates at space root if omitted)" },
+            title: { type: "string", description: "Page title" },
+            content: { type: "string", description: "Page content (supports simple markdown: # headings, plain text)" },
+          },
+          required: ["spaceId", "title"],
+        },
+      },
+      lark_parse_url: {
+        description: "Parse a Lark/Feishu URL to extract document type and token. Use this to get the document ID or wiki node token from a URL shared by the user.",
+        parameters: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "Lark/Feishu URL (e.g. https://xxx.feishu.cn/docx/xxx or https://xxx.feishu.cn/wiki/xxx)" },
+          },
+          required: ["url"],
         },
       },
     };

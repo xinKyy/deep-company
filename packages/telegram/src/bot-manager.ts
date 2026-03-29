@@ -45,6 +45,7 @@ export class BotManager {
     const handler = createMessageHandler(this.ctx, agentId);
 
     bot.on("message", async (grammyCtx) => {
+      console.log(`[BotManager] message received for agent=${agentId} chat=${grammyCtx.message?.chat.id} text="${(grammyCtx.message?.text || "").substring(0, 50)}"`);
       try {
         await handler(grammyCtx);
       } catch (err) {
@@ -56,7 +57,11 @@ export class BotManager {
       console.error(`Bot crash (agent=${agentId}):`, err);
     });
 
-    bot.start();
+    bot.start({
+      onStart: (botInfo) => {
+        console.log(`[BotManager] polling started for @${botInfo.username} (agent=${agentId})`);
+      },
+    });
     this.bots.set(agentId, { agentId, bot, running: true });
     console.log(`Bot started for agent: ${agentId}`);
   }

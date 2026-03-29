@@ -1,18 +1,27 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { resolve, dirname } from "path";
-import { mkdirSync } from "fs";
+import { existsSync, mkdirSync } from "fs";
 import * as schema from "./schema.js";
 
 let _db: ReturnType<typeof createDb> | null = null;
+
+function findProjectRoot(): string {
+  let dir = process.cwd();
+  while (dir !== dirname(dir)) {
+    if (existsSync(resolve(dir, "pnpm-workspace.yaml"))) return dir;
+    dir = dirname(dir);
+  }
+  return process.cwd();
+}
 
 function resolveDbPath(url?: string): string {
   const raw = url || process.env.DATABASE_URL;
   if (raw) {
     if (raw.startsWith("/")) return raw;
-    return resolve(process.cwd(), raw);
+    return resolve(findProjectRoot(), raw);
   }
-  return resolve(process.cwd(), "data/ai-dev-pro.db");
+  return resolve(findProjectRoot(), "data/ai-dev-pro.db");
 }
 
 function createDb(url?: string) {

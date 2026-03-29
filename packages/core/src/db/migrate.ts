@@ -3,13 +3,23 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
-import { mkdirSync } from "fs";
+import { existsSync, mkdirSync } from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+function findProjectRoot(): string {
+  let dir = process.cwd();
+  while (dir !== dirname(dir)) {
+    if (existsSync(resolve(dir, "pnpm-workspace.yaml"))) return dir;
+    dir = dirname(dir);
+  }
+  return process.cwd();
+}
+
+const root = findProjectRoot();
 const dbPath = process.env.DATABASE_URL?.startsWith("/")
   ? process.env.DATABASE_URL
-  : resolve(process.cwd(), process.env.DATABASE_URL || "data/ai-dev-pro.db");
+  : resolve(root, process.env.DATABASE_URL || "data/ai-dev-pro.db");
 
 mkdirSync(dirname(dbPath), { recursive: true });
 

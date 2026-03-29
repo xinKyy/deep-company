@@ -7,6 +7,7 @@ import {
   McpService,
   McpClientManager,
   FigmaService,
+  LarkService,
   MemoryService,
   MessageService,
   EnvVarService,
@@ -26,6 +27,7 @@ export interface AppContext {
   mcpService: McpService;
   mcpClientManager: McpClientManager;
   figmaService: FigmaService;
+  larkService: LarkService | null;
   memoryService: MemoryService;
   messageService: MessageService;
   envVarService: EnvVarService;
@@ -71,6 +73,16 @@ export function createAppContext(): AppContext {
 
   const figmaService = new FigmaService(mcpClientManager);
 
+  let larkService: LarkService | null = null;
+  if (process.env.LARK_APP_ID && process.env.LARK_APP_SECRET) {
+    larkService = new LarkService(
+      process.env.LARK_APP_ID,
+      process.env.LARK_APP_SECRET,
+      process.env.LARK_BASE_URL,
+    );
+    console.log("[AppContext] Lark service initialized");
+  }
+
   if (process.env.OPENAI_API_KEY) {
     llmRouter.registerProvider(
       "openai",
@@ -111,6 +123,7 @@ export function createAppContext(): AppContext {
   registerBuiltinSkills(skillService, taskService, projectService, agentService);
   registerSystemSkills(skillService, envVarService);
   registerFigmaSkills(skillService, figmaService);
+  if (larkService) registerLarkSkills(skillService, larkService);
   registerClawHubSkills(skillService);
 
   return {
@@ -122,6 +135,7 @@ export function createAppContext(): AppContext {
     mcpService,
     mcpClientManager,
     figmaService,
+    larkService,
     memoryService,
     messageService,
     envVarService,
@@ -657,6 +671,74 @@ function registerFigmaSkills(
     const { url } = params as { url: string };
     const parsed = FigmaService.parseUrl(url);
     if (!parsed) return { error: "Unable to parse Figma URL" };
+    return parsed;
+  });
+}
+
+// ─── Lark / 飞书 Skills ──────────────────────────────────────────────────────
+
+function registerLarkSkills(
+  skillService: SkillService,
+  larkService: LarkService
+) {
+  skillService.registerHandler("lark_read_doc", async (params) => {
+    const { documentId } = params as { documentId: string };
+    const { content } = await larkService.readDocument(documentId);
+    return { content };
+  });
+
+  skillService.registerHandler("lark_create_doc", async (params) => {
+    const { title, content, folderToken } = params as {
+      title: string;
+      content?: string;
+      folderToken?: string;
+    };
+    if (content) {
+      return larkService.createDocumentWithContent({ title, content, folderToken });
+    }
+    return larkService.createDocument({ title, folderToken });
+  });
+
+  skillService.registerHandler("lark_get_wiki_node", async (params) => {
+    const { token } = params as { token: string };
+    return larkService.getWikiNode(token);
+  });
+
+  skillService.registerHandler("lark_read_wiki", async (params) => {
+    const { nodeToken } = params as { nodeToken: string };
+    return larkService.readWikiContent(nodeToken);
+  });
+
+  skillService.registerHandler("lark_search_wiki", async (params) => {
+    const { query, spaceId } = params as {
+      query: string;
+      spaceId?: string;
+    };
+    return larkService.searchWiki({ query, spaceId });
+  });
+
+  skillService.registerHandler("lark_create_wiki_node", async (params) => {
+    const { spaceId, parentNodeToken, title, content } = params as {
+      spaceId: string;
+      parentNodeToken?: string;
+      title: string;
+      content?: string;
+    };
+    if (content) {
+      return larkService.createWikiNodeWithContent({
+        spaceId,
+        parentNodeToken,
+        title,
+        content,
+      });
+    }
+    return larkService.createWikiNode({ spaceId, parentNodeToken, title });
+  });
+
+  skillService.registerHandler("lark_parse_url", async (params) => {
+    const { url } = params as { url: string };
+    const parsed = LarkService.parseUrl(url);
+    if (!parsed) return { error: "Unable to parse Lark/Feishu URL" };
     return parsed;
   });
 }

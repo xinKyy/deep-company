@@ -7,6 +7,7 @@ import type {
   McpService,
   McpClientManager,
   FigmaService,
+  LarkService,
   MemoryService,
   MessageService,
   LlmRouter,
@@ -21,6 +22,7 @@ export interface AppContext {
   mcpService: McpService;
   mcpClientManager: McpClientManager;
   figmaService: FigmaService;
+  larkService: LarkService | null;
   memoryService: MemoryService;
   messageService: MessageService;
   llmRouter: LlmRouter;
