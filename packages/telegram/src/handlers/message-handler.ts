@@ -8,6 +8,26 @@ function handlerLog(agentId: string, ...args: unknown[]) {
   console.log(`[${ts}][MsgHandler:${agentId}]`, ...args);
 }
 
+async function downloadTgPhoto(grammyCtx: GrammyContext, fileId: string): Promise<string | null> {
+  try {
+    const file = await grammyCtx.api.getFile(fileId);
+    if (!file.file_path) return null;
+
+    const token = grammyCtx.api.token;
+    const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const ext = file.file_path.split(".").pop() || "jpg";
+    const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    return `data:${mimeType};base64,${buffer.toString("base64")}`;
+  } catch (err) {
+    console.error("[downloadTgPhoto] failed:", err);
+    return null;
+  }
+}
+
 export function createMessageHandler(ctx: AppContext, agentId: string) {
   const engine = new AgentEngine(ctx, agentId);
 
@@ -20,6 +40,7 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
     const userId = msg.from ? String(msg.from.id) : undefined;
     const username = msg.from?.username || undefined;
     const text = msg.text || msg.caption || "";
+    const hasPhoto = !!(msg.photo && msg.photo.length > 0);
 
     await ctx.messageService.record({
       agentId,
@@ -33,18 +54,27 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
       rawData: JSON.stringify(msg),
     });
 
-    if (!text.trim()) return;
+    if (!text.trim() && !hasPhoto) return;
 
     const isPrivate = msg.chat.type === "private";
     const isMentioned = text.includes(`@${await getBotUsername(grammyCtx)}`);
 
-    if (!isPrivate && !isMentioned) return;
+    if (!isPrivate && !isMentioned && !hasPhoto) return;
 
     const cleanText = text.replace(/@\w+/g, "").trim();
-    if (!cleanText) return;
+    if (!cleanText && !hasPhoto) return;
+
+    const imageUrls: string[] = [];
+    if (hasPhoto) {
+      const photo = msg.photo![msg.photo!.length - 1];
+      handlerLog(agentId, `  📷 downloading photo file_id=${photo.file_id}`);
+      const dataUrl = await downloadTgPhoto(grammyCtx, photo.file_id);
+      if (dataUrl) imageUrls.push(dataUrl);
+    }
 
     const handlerStart = Date.now();
-    handlerLog(agentId, `▶ incoming msg | chat=${chatId} user=${username || userId} | "${cleanText.substring(0, 80)}"`);
+    const userText = cleanText || (hasPhoto ? "请分析这张图片" : "");
+    handlerLog(agentId, `▶ incoming msg | chat=${chatId} user=${username || userId} | "${userText.substring(0, 80)}" | photos=${imageUrls.length}`);
 
     try {
       await grammyCtx.react("👀").catch(() => {});
@@ -66,8 +96,8 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
       };
 
       const reply = await engine.process(
-        cleanText,
-        { chatId, userId, username, isGroup: !isPrivate },
+        userText,
+        { chatId, userId, username, isGroup: !isPrivate, imageUrls },
         onProgress
       );
 

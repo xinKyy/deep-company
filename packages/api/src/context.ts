@@ -71,6 +71,17 @@ export function createAppContext(): AppContext {
     console.log("[AppContext] Figma MCP registered (stdio)");
   }
 
+  // ─── Pencil MCP ────────────────────────────────────────────────────────────
+  if (process.env.PENCIL_MCP_COMMAND) {
+    mcpClientManager.register({
+      name: "pencil",
+      transport: "stdio",
+      command: process.env.PENCIL_MCP_COMMAND,
+      args: process.env.PENCIL_MCP_ARGS ? process.env.PENCIL_MCP_ARGS.split(" ") : [],
+    });
+    console.log("[AppContext] Pencil MCP registered (stdio)");
+  }
+
   const figmaService = new FigmaService(mcpClientManager);
 
   let larkService: LarkService | null = null;
@@ -125,6 +136,8 @@ export function createAppContext(): AppContext {
   registerFigmaSkills(skillService, figmaService);
   if (larkService) registerLarkSkills(skillService, larkService);
   registerClawHubSkills(skillService);
+  if (mcpClientManager.has("pencil")) registerPencilSkills(skillService, mcpClientManager);
+  registerTelegramSkills(skillService, agentService);
 
   return {
     agentService,
@@ -745,7 +758,7 @@ function registerLarkSkills(
 
 // ─── ClawHub / Skills Marketplace ────────────────────────────────────────────
 
-import { readdir, readFile, rm, stat } from "fs/promises";
+import { readdir, readFile, rm, stat, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
 
@@ -866,6 +879,136 @@ function registerClawHubSkills(skillService: SkillService) {
 
     await rm(skillPath, { recursive: true, force: true });
     return { success: true, removed: skillPath };
+  });
+}
+
+// ─── Pencil MCP Skills ────────────────────────────────────────────────────────
+
+function registerPencilSkills(
+  skillService: SkillService,
+  mcpClientManager: McpClientManager
+) {
+  const callPencil = async (tool: string, args: Record<string, unknown>) => {
+    const client = await mcpClientManager.get("pencil");
+    const result = await client.callTool(tool, args);
+    if (result.isError) {
+      const errText = result.content.map((c) => c.text || "").join("\n");
+      throw new Error(errText || "Pencil MCP call failed");
+    }
+
+    const textParts = result.content.filter((c) => c.type === "text").map((c) => c.text);
+    const imageParts = result.content.filter((c) => c.type === "image");
+
+    if (imageParts.length > 0) {
+      const img = imageParts[0] as { data?: string; mimeType?: string };
+      const ext = img.mimeType === "image/png" ? "png" : img.mimeType === "image/jpeg" ? "jpg" : "png";
+      const tmpDir = join(process.cwd(), "data", "pencil-exports");
+      await mkdir(tmpDir, { recursive: true });
+      const filePath = join(tmpDir, `screenshot-${Date.now()}.${ext}`);
+      await writeFile(filePath, Buffer.from(img.data || "", "base64"));
+      return { text: textParts.join("\n"), imagePath: filePath };
+    }
+
+    return textParts.join("\n") || JSON.stringify(result.content);
+  };
+
+  skillService.registerHandler("pencil_open_document", async (params) => {
+    const { filePathOrTemplate } = params as { filePathOrTemplate: string };
+    return callPencil("open_document", { filePathOrTemplate });
+  });
+
+  skillService.registerHandler("pencil_get_editor_state", async (params) => {
+    const { includeSchema } = params as { includeSchema?: boolean };
+    return callPencil("get_editor_state", { include_schema: includeSchema ?? true });
+  });
+
+  skillService.registerHandler("pencil_get_guidelines", async (params) => {
+    const { topic } = params as { topic: string };
+    return callPencil("get_guidelines", { topic });
+  });
+
+  skillService.registerHandler("pencil_get_style_guide_tags", async () => {
+    return callPencil("get_style_guide_tags", {});
+  });
+
+  skillService.registerHandler("pencil_get_style_guide", async (params) => {
+    const { tags, name } = params as { tags?: string[]; name?: string };
+    return callPencil("get_style_guide", { tags, name });
+  });
+
+  skillService.registerHandler("pencil_batch_get", async (params) => {
+    const { filePath, patterns, nodeIds, readDepth, searchDepth } = params as any;
+    return callPencil("batch_get", { filePath, patterns, nodeIds, readDepth, searchDepth });
+  });
+
+  skillService.registerHandler("pencil_batch_design", async (params) => {
+    const { filePath, operations } = params as { filePath: string; operations: string };
+    return callPencil("batch_design", { filePath, operations });
+  });
+
+  skillService.registerHandler("pencil_get_screenshot", async (params) => {
+    const { filePath, nodeId } = params as { filePath: string; nodeId: string };
+    return callPencil("get_screenshot", { filePath, nodeId });
+  });
+
+  skillService.registerHandler("pencil_export_nodes", async (params) => {
+    const { filePath, outputDir, nodeIds, format, scale } = params as any;
+    return callPencil("export_nodes", { filePath, outputDir, nodeIds, format, scale });
+  });
+
+  skillService.registerHandler("pencil_snapshot_layout", async (params) => {
+    const { filePath, maxDepth, parentId, problemsOnly } = params as any;
+    return callPencil("snapshot_layout", { filePath, maxDepth, parentId, problemsOnly });
+  });
+
+  skillService.registerHandler("pencil_get_variables", async (params) => {
+    const { filePath } = params as { filePath: string };
+    return callPencil("get_variables", { filePath });
+  });
+
+  skillService.registerHandler("pencil_set_variables", async (params) => {
+    const { filePath, variables, replace } = params as any;
+    return callPencil("set_variables", { filePath, variables, replace });
+  });
+}
+
+// ─── Telegram Photo Skill ─────────────────────────────────────────────────────
+
+function registerTelegramSkills(
+  skillService: SkillService,
+  agentService: AgentService
+) {
+  skillService.registerHandler("send_tg_photo", async (params, ctx) => {
+    const { chatId, filePath, caption } = params as {
+      chatId?: string;
+      filePath: string;
+      caption?: string;
+    };
+    const targetChat = chatId || ctx.chatId || process.env.TG_GROUP_CHAT_ID;
+    if (!targetChat) throw new Error("No chatId provided and no default group configured");
+
+    const agent = await agentService.getById(ctx.agentId);
+    if (!agent?.tgBotToken) throw new Error("Agent has no Telegram bot token configured");
+
+    const fileData = await readFile(filePath);
+    const ext = filePath.split(".").pop()?.toLowerCase() || "png";
+    const mimeType = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : ext === "webp" ? "image/webp" : "image/png";
+
+    const formData = new FormData();
+    formData.append("chat_id", targetChat);
+    formData.append("photo", new Blob([fileData], { type: mimeType }), `photo.${ext}`);
+    if (caption) formData.append("caption", caption);
+
+    const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
+    const fetchFn = globalThis.fetch;
+
+    const res = await fetchFn(`https://api.telegram.org/bot${agent.tgBotToken}/sendPhoto`, {
+      method: "POST",
+      body: formData,
+    });
+    const result = await res.json();
+    if (!result.ok) throw new Error(`Telegram API error: ${JSON.stringify(result)}`);
+    return { sent: true, chatId: targetChat, messageId: result.result?.message_id };
   });
 }
 

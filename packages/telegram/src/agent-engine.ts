@@ -1,11 +1,12 @@
 import type { AppContext } from "./types.js";
-import { resolveAgentWorkDir, type LlmMessage, type LlmTool } from "@ai-dev-pro/core";
+import { resolveAgentWorkDir, type LlmMessage, type LlmTool, type LlmContentPart } from "@ai-dev-pro/core";
 
 interface ProcessContext {
   chatId: string;
   userId?: string;
   username?: string;
   isGroup: boolean;
+  imageUrls?: string[];
 }
 
 export type ProgressCallback = (message: string) => Promise<void>;
@@ -71,6 +72,19 @@ const TOOL_PROGRESS_LABELS: Record<string, string> = {
   lark_search_wiki: "正在搜索飞书 Wiki…",
   lark_create_wiki_node: "正在创建飞书 Wiki 页面…",
   lark_parse_url: "正在解析飞书链接…",
+  pencil_open_document: "正在打开设计文件…",
+  pencil_get_editor_state: "正在获取编辑器状态…",
+  pencil_get_guidelines: "正在获取设计规范…",
+  pencil_get_style_guide_tags: "正在获取风格标签…",
+  pencil_get_style_guide: "正在获取风格指南…",
+  pencil_batch_get: "正在读取设计节点…",
+  pencil_batch_design: "正在执行设计操作…",
+  pencil_get_screenshot: "正在截取设计截图…",
+  pencil_export_nodes: "正在导出设计图…",
+  pencil_snapshot_layout: "正在检查布局结构…",
+  pencil_get_variables: "正在获取设计变量…",
+  pencil_set_variables: "正在更新设计变量…",
+  send_tg_photo: "正在发送图片到 Telegram…",
 };
 
 export class AgentEngine {
@@ -117,7 +131,16 @@ export class AgentEngine {
       });
     }
 
-    messages.push({ role: "user", content: userMessage });
+    if (pCtx.imageUrls && pCtx.imageUrls.length > 0) {
+      const contentParts: LlmContentPart[] = pCtx.imageUrls.map((url) => ({
+        type: "image_url" as const,
+        image_url: { url, detail: "auto" as const },
+      }));
+      contentParts.push({ type: "text", text: userMessage || "请描述这张图片" });
+      messages.push({ role: "user", content: contentParts });
+    } else {
+      messages.push({ role: "user", content: userMessage });
+    }
 
     const emitProgress = async (msg: string) => {
       if (onProgress && msg.trim()) {
@@ -197,7 +220,7 @@ export class AgentEngine {
             const execResult = await this.ctx.skillService.execute(
               tc.function.name,
               params,
-              { agentId: this.agentId, agentWorkDir }
+              { agentId: this.agentId, agentWorkDir, chatId: pCtx.chatId }
             );
 
             const resultStr = JSON.stringify(execResult);
@@ -872,6 +895,146 @@ export class AgentEngine {
             url: { type: "string", description: "Lark/Feishu URL (e.g. https://xxx.feishu.cn/docx/xxx or https://xxx.feishu.cn/wiki/xxx)" },
           },
           required: ["url"],
+        },
+      },
+      // ─── Pencil Design Skills ─────────────────────────────────────
+      pencil_open_document: {
+        description: "Open or create a .pen design file. Pass 'new' for a blank file, or a path to an existing .pen file.",
+        parameters: {
+          type: "object",
+          properties: {
+            filePathOrTemplate: { type: "string", description: "File path to .pen file, or 'new' for blank" },
+          },
+          required: ["filePathOrTemplate"],
+        },
+      },
+      pencil_get_editor_state: {
+        description: "Get the current Pencil editor state: active file, selection, and schema info.",
+        parameters: {
+          type: "object",
+          properties: {
+            includeSchema: { type: "boolean", description: "Include .pen file schema (default true)" },
+          },
+        },
+      },
+      pencil_get_guidelines: {
+        description: "Get design guidelines for a specific topic (web-app, mobile-app, landing-page, design-system, slides, code, table, tailwind).",
+        parameters: {
+          type: "object",
+          properties: {
+            topic: { type: "string", enum: ["code", "table", "tailwind", "landing-page", "design-system", "slides", "mobile-app", "web-app"] },
+          },
+          required: ["topic"],
+        },
+      },
+      pencil_get_style_guide_tags: {
+        description: "Get all available style guide tags for design inspiration.",
+        parameters: { type: "object", properties: {} },
+      },
+      pencil_get_style_guide: {
+        description: "Get a style guide based on tags or name for design inspiration.",
+        parameters: {
+          type: "object",
+          properties: {
+            tags: { type: "array", items: { type: "string" }, description: "5-10 style tags" },
+            name: { type: "string", description: "Specific style guide name" },
+          },
+        },
+      },
+      pencil_batch_get: {
+        description: "Read nodes from a .pen design file by patterns or IDs. Use to discover components and structure.",
+        parameters: {
+          type: "object",
+          properties: {
+            filePath: { type: "string", description: ".pen file path" },
+            patterns: { type: "array", description: "Search patterns [{reusable: true}, {type: 'frame'}]" },
+            nodeIds: { type: "array", items: { type: "string" }, description: "Node IDs to read" },
+            readDepth: { type: "number", description: "How deep to read children (default 1)" },
+            searchDepth: { type: "number", description: "How deep to search (default unlimited)" },
+          },
+          required: ["filePath"],
+        },
+      },
+      pencil_batch_design: {
+        description: "Execute design operations (insert/copy/update/replace/move/delete/image) in a .pen file. Max 25 ops per call.",
+        parameters: {
+          type: "object",
+          properties: {
+            filePath: { type: "string", description: ".pen file path" },
+            operations: { type: "string", description: "Operation script (e.g. 'sidebar=I(\"parentId\",{type:\"frame\",layout:\"vertical\"})')" },
+          },
+          required: ["filePath", "operations"],
+        },
+      },
+      pencil_get_screenshot: {
+        description: "Get a screenshot of a design node. Returns the image file path. Use send_tg_photo to share it.",
+        parameters: {
+          type: "object",
+          properties: {
+            filePath: { type: "string", description: ".pen file path" },
+            nodeId: { type: "string", description: "Node ID to screenshot" },
+          },
+          required: ["filePath", "nodeId"],
+        },
+      },
+      pencil_export_nodes: {
+        description: "Export design nodes to image files (PNG/JPEG/WEBP/PDF).",
+        parameters: {
+          type: "object",
+          properties: {
+            filePath: { type: "string", description: ".pen file path" },
+            outputDir: { type: "string", description: "Output directory for exported files" },
+            nodeIds: { type: "array", items: { type: "string" }, description: "Node IDs to export" },
+            format: { type: "string", enum: ["png", "jpeg", "webp", "pdf"], description: "Export format (default png)" },
+            scale: { type: "number", description: "Scale factor (default 2)" },
+          },
+          required: ["filePath", "outputDir", "nodeIds"],
+        },
+      },
+      pencil_snapshot_layout: {
+        description: "Check the computed layout of nodes in a .pen file to verify positioning.",
+        parameters: {
+          type: "object",
+          properties: {
+            filePath: { type: "string", description: ".pen file path" },
+            maxDepth: { type: "number", description: "Max depth to traverse" },
+            parentId: { type: "string", description: "Parent node to check" },
+            problemsOnly: { type: "boolean", description: "Only return nodes with layout issues" },
+          },
+          required: ["filePath"],
+        },
+      },
+      pencil_get_variables: {
+        description: "Get design variables and themes from a .pen file.",
+        parameters: {
+          type: "object",
+          properties: { filePath: { type: "string", description: ".pen file path" } },
+          required: ["filePath"],
+        },
+      },
+      pencil_set_variables: {
+        description: "Update design variables and themes in a .pen file.",
+        parameters: {
+          type: "object",
+          properties: {
+            filePath: { type: "string", description: ".pen file path" },
+            variables: { type: "object", description: "Variable definitions" },
+            replace: { type: "boolean", description: "Replace all existing variables" },
+          },
+          required: ["filePath", "variables"],
+        },
+      },
+      // ─── Telegram Photo ──────────────────────────────────────────
+      send_tg_photo: {
+        description: "Send an image file to a Telegram chat. Use after pencil_export_nodes or pencil_get_screenshot to share design screenshots. If chatId is omitted, sends to current chat.",
+        parameters: {
+          type: "object",
+          properties: {
+            filePath: { type: "string", description: "Local path to the image file" },
+            caption: { type: "string", description: "Photo caption text" },
+            chatId: { type: "string", description: "Target Telegram chat ID (optional, defaults to current chat)" },
+          },
+          required: ["filePath"],
         },
       },
     };

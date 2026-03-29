@@ -15,6 +15,8 @@ export type SkillExecutionContext = {
   taskId?: string;
   /** Resolved absolute path for shell, git, codex default cwd */
   agentWorkDir: string;
+  /** Current Telegram chat ID (available when invoked from TG message handler) */
+  chatId?: string;
 };
 
 export type SkillHandler = (

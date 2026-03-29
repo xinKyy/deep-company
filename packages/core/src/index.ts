@@ -25,6 +25,6 @@ export type { CreateEnvVarInput } from "./env-var/env-var-service.js";
 export { MemoryService } from "./memory/memory-service.js";
 export { MessageService } from "./memory/message-service.js";
 export { LlmRouter, createOpenAIAdapter, createAnthropicAdapter } from "./llm/llm-router.js";
-export type { LlmMessage, LlmTool, LlmCompletionInput, LlmCompletionResult, LlmToolCall } from "./llm/llm-router.js";
+export type { LlmMessage, LlmContentPart, LlmTool, LlmCompletionInput, LlmCompletionResult, LlmToolCall } from "./llm/llm-router.js";
 export { LarkService } from "./lark/lark-service.js";
 export type { LarkDocBlock, LarkWikiNode } from "./lark/lark-service.js";

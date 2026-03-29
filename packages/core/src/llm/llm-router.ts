@@ -1,6 +1,10 @@
+export type LlmContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
+
 export interface LlmMessage {
   role: "system" | "user" | "assistant" | "tool";
-  content: string;
+  content: string | LlmContentPart[];
   name?: string;
   tool_call_id?: string;
   tool_calls?: LlmToolCall[];
@@ -71,10 +75,13 @@ export function createOpenAIAdapter(
 ): ProviderAdapter {
   return async (input) => {
     const messages = input.messages.map((m) => {
-      const msg: Record<string, unknown> = {
-        role: m.role,
-        content: m.content,
-      };
+      const msg: Record<string, unknown> = { role: m.role };
+      // Pass multimodal content arrays through directly for vision support
+      if (Array.isArray(m.content)) {
+        msg.content = m.content;
+      } else {
+        msg.content = m.content;
+      }
       if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
       if (m.name) msg.name = m.name;
       if (m.tool_calls && m.tool_calls.length > 0) {
@@ -134,6 +141,25 @@ export function createOpenAIAdapter(
   };
 }
 
+function toAnthropicContent(content: string | LlmContentPart[]): unknown {
+  if (typeof content === "string") return content;
+  return content.map((part) => {
+    if (part.type === "text") return { type: "text", text: part.text };
+    if (part.type === "image_url") {
+      const url = part.image_url.url;
+      const match = url.match(/^data:(image\/\w+);base64,(.+)$/);
+      if (match) {
+        return {
+          type: "image",
+          source: { type: "base64", media_type: match[1], data: match[2] },
+        };
+      }
+      return { type: "image", source: { type: "url", url } };
+    }
+    return { type: "text", text: String(part) };
+  });
+}
+
 export function createAnthropicAdapter(apiKey: string): ProviderAdapter {
   return async (input) => {
     const systemMsg = input.messages.find((m) => m.role === "system");
@@ -144,7 +170,7 @@ export function createAnthropicAdapter(apiKey: string): ProviderAdapter {
       max_tokens: input.maxTokens || 4096,
       messages: otherMsgs.map((m) => ({
         role: m.role === "tool" ? "user" : m.role,
-        content: m.content,
+        content: toAnthropicContent(m.content),
       })),
     };
     if (systemMsg) body.system = systemMsg.content;
