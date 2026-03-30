@@ -79,6 +79,15 @@ const TOOL_PROGRESS_LABELS: Record<string, string> = {
   pencil_snapshot_layout: "正在检查布局结构…",
   pencil_get_variables: "正在获取设计变量…",
   pencil_set_variables: "正在更新设计变量…",
+  stitch_list_projects: "正在获取 Stitch 项目列表…",
+  stitch_create_project: "正在创建 Stitch 项目…",
+  stitch_get_project: "正在获取 Stitch 项目详情…",
+  stitch_list_screens: "正在获取 Stitch 屏幕列表…",
+  stitch_get_screen: "正在获取 Stitch 屏幕信息…",
+  stitch_generate_screen: "正在用 AI 生成 UI 设计…",
+  stitch_fetch_screen_code: "正在获取设计代码…",
+  stitch_fetch_screen_image: "正在获取设计截图…",
+  stitch_extract_design_context: "正在提取设计上下文…",
   send_tg_photo: "正在发送图片到 Telegram…",
   design_html_screenshot: "正在生成 HTML 设计截图…",
   design_url_screenshot: "正在截取网页截图…",
@@ -913,6 +922,98 @@ export class AgentEngine {
             url: { type: "string", description: "Lark/Feishu URL (e.g. https://xxx.feishu.cn/docx/xxx or https://xxx.feishu.cn/wiki/xxx)" },
           },
           required: ["url"],
+        },
+      },
+      // ─── Google Stitch Skills (AI UI Design) ────────────────────────
+      stitch_list_projects: {
+        description: "List all Google Stitch design projects. Returns project IDs (format: 'projects/NUMERIC_ID') and titles.",
+        parameters: { type: "object", properties: {} },
+      },
+      stitch_create_project: {
+        description: "Create a new Stitch design project workspace. Returns the project with full name (projects/ID) and numeric ID.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Descriptive project title (e.g. 'Pet Adoption App', 'SaaS Dashboard')" },
+          },
+          required: ["title"],
+        },
+      },
+      stitch_get_project: {
+        description: "Get details of a specific Stitch project. Use full project name (projects/ID) or numeric ID.",
+        parameters: {
+          type: "object",
+          properties: {
+            project_id: { type: "string", description: "Stitch project ID (numeric ID or full 'projects/NUMERIC_ID')" },
+          },
+          required: ["project_id"],
+        },
+      },
+      stitch_list_screens: {
+        description: "List all screens/pages within a Stitch project. Use full project name (projects/ID) or numeric ID.",
+        parameters: {
+          type: "object",
+          properties: {
+            project_id: { type: "string", description: "Stitch project ID (numeric ID or full 'projects/NUMERIC_ID')" },
+          },
+          required: ["project_id"],
+        },
+      },
+      stitch_get_screen: {
+        description: "Get metadata for a specific screen in a Stitch project.",
+        parameters: {
+          type: "object",
+          properties: {
+            project_id: { type: "string", description: "Stitch project numeric ID" },
+            screen_id: { type: "string", description: "Screen ID" },
+          },
+          required: ["project_id", "screen_id"],
+        },
+      },
+      stitch_generate_screen: {
+        description: "Generate a NEW UI screen using AI from a text prompt. Best workflow: first extract design context from an existing screen, then generate new screens using that context for consistency.",
+        parameters: {
+          type: "object",
+          properties: {
+            project_id: { type: "string", description: "Stitch project numeric ID" },
+            prompt: { type: "string", description: "UI description prompt (e.g. 'A modern dashboard with charts and a sidebar nav')" },
+            model_id: { type: "string", enum: ["GEMINI_3_PRO", "GEMINI_3_FLASH"], description: "Model to use (default: GEMINI_3_PRO). FLASH is faster, PRO is higher quality." },
+            context: { type: "string", description: "Design context (from stitch_extract_design_context) to maintain style consistency" },
+          },
+          required: ["project_id", "prompt"],
+        },
+      },
+      stitch_fetch_screen_code: {
+        description: "Download the raw HTML/CSS/frontend code generated for a Stitch screen. Use this to get production-ready code from a design.",
+        parameters: {
+          type: "object",
+          properties: {
+            project_id: { type: "string", description: "Stitch project numeric ID" },
+            screen_id: { type: "string", description: "Screen ID" },
+          },
+          required: ["project_id", "screen_id"],
+        },
+      },
+      stitch_fetch_screen_image: {
+        description: "Download the high-resolution screenshot/image of a Stitch screen. Use send_tg_photo to share it.",
+        parameters: {
+          type: "object",
+          properties: {
+            project_id: { type: "string", description: "Stitch project numeric ID" },
+            screen_id: { type: "string", description: "Screen ID" },
+          },
+          required: ["project_id", "screen_id"],
+        },
+      },
+      stitch_extract_design_context: {
+        description: "Extract 'Design DNA' from a screen: fonts, colors, layouts, and design tokens. Use this first, then pass the result as context to stitch_generate_screen for consistent designs across screens.",
+        parameters: {
+          type: "object",
+          properties: {
+            project_id: { type: "string", description: "Stitch project numeric ID" },
+            screen_id: { type: "string", description: "Screen ID to extract design context from" },
+          },
+          required: ["project_id", "screen_id"],
         },
       },
       // ─── Pencil Design Skills ─────────────────────────────────────

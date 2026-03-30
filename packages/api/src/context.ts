@@ -82,6 +82,28 @@ export function createAppContext(): AppContext {
     console.log("[AppContext] Pencil MCP registered (stdio)");
   }
 
+  // ─── Stitch MCP (Google AI UI Design) ──────────────────────────────────────
+  if (process.env.STITCH_API_KEY) {
+    mcpClientManager.register({
+      name: "stitch",
+      transport: "http",
+      url: "https://stitch.googleapis.com/mcp",
+      headers: { "X-Goog-Api-Key": process.env.STITCH_API_KEY },
+    });
+    console.log("[AppContext] Stitch MCP registered (HTTP + API key)");
+  } else if (process.env.STITCH_MCP_COMMAND) {
+    mcpClientManager.register({
+      name: "stitch",
+      transport: "stdio",
+      command: process.env.STITCH_MCP_COMMAND,
+      args: process.env.STITCH_MCP_ARGS ? process.env.STITCH_MCP_ARGS.split(" ") : [],
+      env: {
+        ...(process.env.STITCH_PROJECT_ID ? { GOOGLE_CLOUD_PROJECT: process.env.STITCH_PROJECT_ID } : {}),
+      },
+    });
+    console.log("[AppContext] Stitch MCP registered (stdio)");
+  }
+
   const figmaService = new FigmaService(mcpClientManager);
 
   let larkService: LarkService | null = null;
@@ -142,6 +164,10 @@ export function createAppContext(): AppContext {
   } else {
     registerPuppeteerDesignSkills(skillService);
     console.log("[AppContext] Puppeteer design skills registered (Pencil not configured)");
+  }
+  if (mcpClientManager.has("stitch")) {
+    registerStitchSkills(skillService, mcpClientManager);
+    console.log("[AppContext] Stitch design skills registered");
   }
   registerTelegramSkills(skillService, agentService);
 
@@ -1142,6 +1168,101 @@ function registerPencilSkills(
   skillService.registerHandler("pencil_set_variables", async (params) => {
     const { filePath, variables, replace } = params as any;
     return callPencil("set_variables", { filePath, variables, replace });
+  });
+}
+
+// ─── Google Stitch MCP Skills ─────────────────────────────────────────────────
+
+function registerStitchSkills(
+  skillService: SkillService,
+  mcpClientManager: McpClientManager
+) {
+  const STITCH_SLOW_TOOLS = new Set(["generate_screen_from_text"]);
+  const STITCH_SLOW_TIMEOUT = 180_000; // 3 minutes for AI generation
+
+  const callStitch = async (tool: string, args: Record<string, unknown>) => {
+    const client = await mcpClientManager.get("stitch");
+    const opts = STITCH_SLOW_TOOLS.has(tool) ? { timeout: STITCH_SLOW_TIMEOUT } : undefined;
+    const result = await client.callTool(tool, args, opts);
+    if (result.isError) {
+      const errText = result.content.map((c) => c.text || "").join("\n");
+      throw new Error(errText || "Stitch MCP call failed");
+    }
+
+    const textParts = result.content.filter((c) => c.type === "text").map((c) => c.text);
+    const imageParts = result.content.filter((c) => c.type === "image");
+
+    if (imageParts.length > 0) {
+      const img = imageParts[0] as { data?: string; mimeType?: string };
+      const ext = img.mimeType === "image/png" ? "png" : img.mimeType === "image/jpeg" ? "jpg" : "png";
+      const tmpDir = join(process.cwd(), "data", "stitch-exports");
+      await mkdir(tmpDir, { recursive: true });
+      const filePath = join(tmpDir, `stitch-${Date.now()}.${ext}`);
+      await writeFile(filePath, Buffer.from(img.data || "", "base64"));
+      return { text: textParts.join("\n"), imagePath: filePath };
+    }
+
+    return textParts.join("\n") || JSON.stringify(result.content);
+  };
+
+  const toFullName = (id: string) =>
+    id.startsWith("projects/") ? id : `projects/${id}`;
+  const toNumericId = (id: string) =>
+    id.startsWith("projects/") ? id.replace("projects/", "") : id;
+
+  skillService.registerHandler("stitch_list_projects", async () => {
+    return callStitch("list_projects", {});
+  });
+
+  skillService.registerHandler("stitch_create_project", async (params) => {
+    const { title } = params as { title: string };
+    return callStitch("create_project", { title });
+  });
+
+  skillService.registerHandler("stitch_get_project", async (params) => {
+    const { project_id } = params as { project_id: string };
+    return callStitch("get_project", { project_id: toFullName(project_id) });
+  });
+
+  skillService.registerHandler("stitch_list_screens", async (params) => {
+    const { project_id } = params as { project_id: string };
+    return callStitch("list_screens", { project_id: toFullName(project_id) });
+  });
+
+  skillService.registerHandler("stitch_get_screen", async (params) => {
+    const { project_id, screen_id } = params as { project_id: string; screen_id: string };
+    return callStitch("get_screen", { project_id: toNumericId(project_id), screen_id });
+  });
+
+  skillService.registerHandler("stitch_generate_screen", async (params) => {
+    const { project_id, prompt, model_id, context } = params as {
+      project_id: string;
+      prompt: string;
+      model_id?: string;
+      context?: string;
+    };
+    const args: Record<string, unknown> = {
+      project_id: toNumericId(project_id),
+      prompt,
+      model_id: model_id || "GEMINI_3_PRO",
+    };
+    if (context) args.context = context;
+    return callStitch("generate_screen_from_text", args);
+  });
+
+  skillService.registerHandler("stitch_fetch_screen_code", async (params) => {
+    const { project_id, screen_id } = params as { project_id: string; screen_id: string };
+    return callStitch("fetch_screen_code", { project_id: toNumericId(project_id), screen_id });
+  });
+
+  skillService.registerHandler("stitch_fetch_screen_image", async (params) => {
+    const { project_id, screen_id } = params as { project_id: string; screen_id: string };
+    return callStitch("fetch_screen_image", { project_id: toNumericId(project_id), screen_id });
+  });
+
+  skillService.registerHandler("stitch_extract_design_context", async (params) => {
+    const { project_id, screen_id } = params as { project_id: string; screen_id: string };
+    return callStitch("extract_design_context", { project_id: toNumericId(project_id), screen_id });
   });
 }
 

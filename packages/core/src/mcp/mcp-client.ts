@@ -71,9 +71,13 @@ export class McpClient {
     }));
   }
 
-  async callTool(name: string, args: Record<string, unknown> = {}): Promise<McpToolCallResult> {
+  async callTool(name: string, args: Record<string, unknown> = {}, options?: { timeout?: number }): Promise<McpToolCallResult> {
     await this.ensureConnected();
-    const result = await this.client.callTool({ name, arguments: args });
+    const result = await this.client.callTool(
+      { name, arguments: args },
+      undefined,
+      options?.timeout ? { timeout: options.timeout } : undefined,
+    );
     return {
       content: result.content as McpToolCallResult["content"],
       isError: result.isError as boolean | undefined,
