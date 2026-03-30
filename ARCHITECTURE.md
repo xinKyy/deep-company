@@ -309,11 +309,7 @@ Provider 注册在 `packages/api/src/context.ts` 的 `createAppContext()` 中，
 | Jenkins | `jenkins_list_jobs` | 列出 Jenkins Jobs | JENKINS_TOKEN |
 | Codex | `codex_write_code` | 调用 Codex CLI 编写代码 | — |
 | Codex | `codex_explain` | 调用 Codex CLI 解释/分析 | — |
-| Google | `gog_create_doc` | 创建 Google 文档 | — |
-| Google | `gog_update_doc` | 修改 Google 文档内容 | — |
-| Google | `gog_read_doc` | 读取 Google 文档 | — |
-| Google | `gog_share_doc` | 修改文档共享权限 | — |
-| Google | `gog_list_docs` | 列出所有文档 | — |
+| Google | (via `run_bash` + `gog` CLI) | 通过 bash 调用 gog 命令操作 Google Docs/Sheets/Drive/Gmail/Calendar | — |
 
 ### 4.8 环境变量系统
 

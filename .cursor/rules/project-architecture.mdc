@@ -33,7 +33,8 @@ packages/
 ### Skills 系统
 
 - **内置 Skills**：注册在 `packages/api/src/context.ts` 的 `registerBuiltinSkills()`
-- **系统 Skills**（git、bash、jenkins、codex、google docs）：注册在同一文件的 `registerSystemSkills()`
+- **系统 Skills**（git、bash、jenkins、codex）：注册在同一文件的 `registerSystemSkills()`
+- **Google Workspace 操作**：Agent 通过 `run_bash` 调用 `gog` CLI 完成（不再使用独立的 gog_* 工具）
 - 所有 Skill 同时作为 LLM function-calling tools 暴露给 AgentEngine
 - 添加新 Skill 需要：(1) 在 context.ts 注册 handler (2) 在 agent-engine.ts 添加 tool 定义
 

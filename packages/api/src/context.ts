@@ -634,49 +634,6 @@ function registerSystemSkills(
     return run("codex", [prompt], { cwd: dir });
   });
 
-  // ─── Google Docs (gog) Skills ─────────────────────────────────────────────
-
-  skillService.registerHandler("gog_create_doc", async (params) => {
-    const { title, content } = params as {
-      title: string;
-      content?: string;
-    };
-    const args = ["create", "doc", "--title", title];
-    if (content) args.push("--content", content);
-    return run("gog", args);
-  });
-
-  skillService.registerHandler("gog_update_doc", async (params) => {
-    const { docId, content, append } = params as {
-      docId: string;
-      content: string;
-      append?: boolean;
-    };
-    const args = ["update", "doc", docId];
-    if (append) args.push("--append");
-    args.push("--content", content);
-    return run("gog", args);
-  });
-
-  skillService.registerHandler("gog_read_doc", async (params) => {
-    const { docId } = params as { docId: string };
-    return run("gog", ["read", "doc", docId]);
-  });
-
-  skillService.registerHandler("gog_share_doc", async (params) => {
-    const { docId, email, role } = params as {
-      docId: string;
-      email: string;
-      role?: "reader" | "writer" | "commenter";
-    };
-    const args = ["share", docId, "--email", email];
-    if (role) args.push("--role", role);
-    return run("gog", args);
-  });
-
-  skillService.registerHandler("gog_list_docs", async () => {
-    return run("gog", ["list", "docs"]);
-  });
 }
 
 function registerFigmaSkills(
