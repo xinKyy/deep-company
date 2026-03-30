@@ -965,7 +965,18 @@ export class AgentEngine {
           type: "object",
           properties: {
             filePath: { type: "string", description: ".pen file path" },
-            patterns: { type: "array", description: "Search patterns [{reusable: true}, {type: 'frame'}]" },
+            patterns: {
+              type: "array",
+              description: "Search patterns [{reusable: true}, {type: 'frame'}]",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string", description: "Regex pattern to match node name" },
+                  type: { type: "string", description: "Node type filter (frame, text, rectangle, etc.)" },
+                  reusable: { type: "boolean", description: "Filter by reusable flag" },
+                },
+              },
+            },
             nodeIds: { type: "array", items: { type: "string" }, description: "Node IDs to read" },
             readDepth: { type: "number", description: "How deep to read children (default 1)" },
             searchDepth: { type: "number", description: "How deep to search (default unlimited)" },
