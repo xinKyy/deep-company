@@ -79,7 +79,7 @@ export function createMessageHandler(ctx: AppContext, agentId: string) {
     const isPrivate = msg.chat.type === "private";
     const isMentioned = text.includes(`@${await getBotUsername(grammyCtx)}`);
 
-    if (!isPrivate && !isMentioned && !hasImage) return;
+    if (!isPrivate && !isMentioned) return;
 
     const cleanText = text.replace(/@\w+/g, "").trim();
     if (!cleanText && !hasImage) return;
