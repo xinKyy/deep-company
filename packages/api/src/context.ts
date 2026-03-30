@@ -477,9 +477,25 @@ function registerSystemSkills(
         ["remote", "get-url", "origin"],
         { cwd: dir }
       );
-      const match = remoteUrl.trim().match(/gitlab\.com[:/](.+?)(?:\.git)?$/);
-      if (!match) throw new Error("Cannot parse GitLab project from remote URL");
-      const projectPath = encodeURIComponent(match[1]);
+      const raw = remoteUrl.trim();
+      let gitlabHost: string;
+      let projectPath: string;
+      const sshMatch = raw.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+      if (sshMatch) {
+        gitlabHost = sshMatch[1];
+        projectPath = sshMatch[2];
+      } else if (raw.startsWith("http")) {
+        try {
+          const parsed = new URL(raw);
+          gitlabHost = parsed.host;
+          projectPath = parsed.pathname.replace(/^\//, "").replace(/\.git$/, "");
+        } catch {
+          throw new Error(`Cannot parse GitLab remote URL: ${raw}`);
+        }
+      } else {
+        throw new Error(`Cannot parse GitLab remote URL: ${raw}`);
+      }
+      const encodedProject = encodeURIComponent(projectPath);
       const payload = JSON.stringify({
         title,
         description: body || "",
@@ -488,7 +504,7 @@ function registerSystemSkills(
       });
       args.push("-d", payload);
       args.push(
-        `https://gitlab.com/api/v4/projects/${projectPath}/merge_requests`
+        `https://${gitlabHost}/api/v4/projects/${encodedProject}/merge_requests`
       );
       return run("curl", args);
     }
